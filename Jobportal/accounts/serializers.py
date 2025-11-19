@@ -47,15 +47,23 @@ class ForgotPasswordSerializer(serializers.Serializer):
         user.generate_otp()
         user.save()
         return user
-class VerifyPasswordSerializer(serializers.Serializer):
+class ForgotPasswordOTPVerifySerializer(serializers.Serializer):
+    email = serializers.EmailField()
     otp = serializers.CharField(max_length=6)
+    
+    def validate(self, data):
+        user = User.objects.filter(email=data['email']).first()
+        if not user:
+            raise serializers.ValidationError("User not found")
+        if user.otp != data['otp']:
+            raise serializers.ValidationError("Invalid OTP")
+        return data
+
+class ResetPasswordSerializer(serializers.Serializer):
     new_password = serializers.CharField(write_only=True)
     confirm_password = serializers.CharField(write_only=True)
 
     def validate(self, data):
-        user = User.objects.filter(otp=data['otp']).first()
-        if not user:
-            raise serializers.ValidationError("Invalid OTP")
         if data['new_password'] != data['confirm_password']:
             raise serializers.ValidationError("Passwords don't match")
         return data
@@ -92,8 +100,3 @@ class ChangePasswordSerializer(serializers.Serializer):
             raise serializers.ValidationError("Passwords don't match")
         return data
 
-class UserSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = ['id', 'first_name', 'last_name', 'email','password', 'job_role', 'is_verified']
-        read_only_fields = ['id']

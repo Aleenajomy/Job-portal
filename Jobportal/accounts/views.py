@@ -1,7 +1,7 @@
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
-from .serializers import RegisterSerializer, LoginSerializer, ForgotPasswordSerializer, VerifyOTPSerializer, ResendOTPSerializer, ChangePasswordSerializer, VerifyPasswordSerializer, UserSerializer
+from .serializers import *
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from django.core.mail import send_mail
@@ -91,27 +91,53 @@ class ForgotPasswordAPI(APIView):
             return Response({
                 'message': 'User not found'
             }, status=status.HTTP_404_NOT_FOUND)
-class VerifyPasswordAPI(APIView):
+
+class ForgotPasswordOTPVerifyAPI(APIView):
     def post(self, request):
-        serializer = VerifyPasswordSerializer(data=request.data)
+        serializer = ForgotPasswordOTPVerifySerializer(data=request.data)
         if not serializer.is_valid():
             return Response({
                 'message': serializer.errors
             }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Store email in session for password reset
+        request.session['reset_email'] = serializer.validated_data['email']
+        
+        return Response({
+            'message': 'OTP verified successfully. You can now reset your password.'
+        }, status=status.HTTP_200_OK)
 
+class ResetPasswordAPI(APIView):
+    def post(self, request):
+        serializer = ResetPasswordSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response({
+                'message': serializer.errors
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Get email from session or require it in the request
+        email = request.session.get('reset_email')
+        if not email:
+            return Response({
+                'message': 'Session expired. Please start the password reset process again.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
         try:
-            user = User.objects.get(otp=serializer.validated_data['otp'])
+            user = User.objects.get(email=email)
             user.set_password(serializer.validated_data['new_password'])
             user.otp = None
             user.save()
-
+            
+            # Clear session
+            request.session.pop('reset_email', None)
+            
             return Response({
                 'message': 'Password reset successfully'
             }, status=status.HTTP_200_OK)
         except User.DoesNotExist:
             return Response({
-                'message': 'Invalid OTP'
-            }, status=status.HTTP_400_BAD_REQUEST)            
+                'message': 'User not found'
+            }, status=status.HTTP_404_NOT_FOUND)            
 
 class VerifyOTPAPI(APIView):
     def post(self, request):
