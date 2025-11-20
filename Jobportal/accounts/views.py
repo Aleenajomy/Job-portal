@@ -54,13 +54,16 @@ class LoginAPI(APIView):
                 'message': 'Please verify your email first'
             }, status=status.HTTP_400_BAD_REQUEST)
         
-        refresh = RefreshToken()
-        refresh['user_id'] = user.id
-
+        from rest_framework_simplejwt.tokens import RefreshToken
+        
+        refresh = RefreshToken.for_user(user)
+        access_token = str(refresh.access_token)
+        
         return Response({
             'message': 'Login successful',
-            'access_token': str(refresh.access_token),
-            'refresh_token': str(refresh)
+            'access_token': access_token,
+            'user_id': user.id,
+            'job_role': user.job_role
         }, status=status.HTTP_200_OK)
 
 class ForgotPasswordAPI(APIView):
@@ -217,11 +220,35 @@ class ChangePasswordAPI(APIView):
                 'message': 'User not found'
             }, status=status.HTTP_404_NOT_FOUND)
 
-class GetAllUsersAPI(APIView):
-    def get(self, request):
-        users = User.objects.all()
-        serializer = UserSerializer(users, many=True)
-        return Response({
-            'message': 'Users retrieved successfully',
-            'data': serializer.data
-        }, status=status.HTTP_200_OK)
+class UpdateJobRoleAPI(APIView):
+    def patch(self, request):
+        from rest_framework_simplejwt.tokens import UntypedToken
+        from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
+        
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return Response({'error': 'Invalid token'}, status=401)
+        
+        token = auth_header.split(' ')[1]
+        try:
+            UntypedToken(token)
+            import jwt
+            decoded = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+            user = User.objects.get(id=decoded.get('user_id'))
+        except (InvalidToken, TokenError, User.DoesNotExist):
+            return Response({'error': 'User not found'}, status=404)
+        except Exception:
+            return Response({'error': 'Invalid token'}, status=401)
+        
+        job_role = request.data.get('job_role')
+        if not job_role:
+            return Response({'error': 'job_role required'}, status=400)
+        
+        valid_choices = [choice[0] for choice in User.JOB_ROLE_CHOICES]
+        if job_role not in valid_choices:
+            return Response({'error': f'Invalid job role. Must be one of: {valid_choices}'}, status=400)
+        
+        user.job_role = job_role
+        user.save()
+        
+        return Response({'message': 'Job role updated successfully', 'job_role': user.job_role})

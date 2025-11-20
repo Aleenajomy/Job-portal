@@ -10,5 +10,6 @@ urlpatterns = [
     path('verify-otp/', VerifyOTPAPI.as_view(), name='verify_otp'),
     path('resend-otp/', ResendOTPAPI.as_view(), name='resend_otp'),
     path('change-password/', ChangePasswordAPI.as_view(), name='change_password'),
-    path('users/', GetAllUsersAPI.as_view(), name='get_all_users'),
+    path('update-job-role/', UpdateJobRoleAPI.as_view(), name='update_job_role'),
+
 ]

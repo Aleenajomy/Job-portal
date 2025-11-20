@@ -9,6 +9,12 @@ class RegisterSerializer(serializers.ModelSerializer):
         fields = ['first_name', 'last_name', 'email', 'password','confirm_password', 'job_role']
         extra_kwargs = {'password': {'write_only': True}}
     
+    def validate_job_role(self, value):
+        valid_choices = [choice[0] for choice in User.JOB_ROLE_CHOICES]
+        if value not in valid_choices:
+            raise serializers.ValidationError(f"Invalid job role. Must be one of: {', '.join(valid_choices)}")
+        return value
+    
     def validate(self, data):
         if data['password'] != data['confirm_password']:
             raise serializers.ValidationError("Passwords don't match")
