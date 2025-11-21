@@ -5,10 +5,11 @@ class JobPostListSerializer(serializers.ModelSerializer):
     publisher_name = serializers.SerializerMethodField()
     publisher_email = serializers.CharField(source="publisher.email", read_only=True)
     publisher_role = serializers.SerializerMethodField()
+    company_name = serializers.ReadOnlyField()
 
     class Meta:
         model = JobPost
-        fields = ("id", "title", "publisher_name", "publisher_email", "publisher_role", "job_type", "created_at")
+        fields = ("id", "title", "salary", "company_name", "publisher_name", "publisher_email", "publisher_role", "job_type", "created_at")
 
     def get_publisher_name(self, obj):
         return f"{obj.publisher.first_name} {obj.publisher.last_name}"
@@ -22,6 +23,7 @@ class JobPostDetailSerializer(serializers.ModelSerializer):
     publisher_role = serializers.SerializerMethodField()
     publisher_phone = serializers.CharField(source="publisher.profile.phone", read_only=True)
     publisher_profile_img = serializers.SerializerMethodField()
+    company_name = serializers.ReadOnlyField()
 
     class Meta:
         model = JobPost
@@ -30,7 +32,7 @@ class JobPostDetailSerializer(serializers.ModelSerializer):
             "publisher_name", "publisher_email", "publisher_role", "publisher_phone", "publisher_profile_img",
             "created_at", "updated_at", "is_active", "is_applied"
         )
-        read_only_fields = ("publisher_name", "publisher_email", "publisher_role", "created_at", "updated_at")
+        read_only_fields = ("company_name", "publisher_name", "publisher_email", "publisher_role", "created_at", "updated_at")
 
     def get_publisher_name(self, obj):
         return f"{obj.publisher.first_name} {obj.publisher.last_name}"

@@ -10,8 +10,7 @@ class JobPost(models.Model):
     ]
     title = models.CharField(max_length=255)
     description = models.TextField()
-    requirements = models.TextField(blank=True, null=True)
-    company_name = models.CharField(max_length=100)
+    requirements = models.JSONField(default=list, blank=True)  # Required skills as list
     location = models.CharField(max_length=255, blank=True, null=True)
     salary = models.CharField(max_length=100, blank=True, null=True)
     job_type = models.CharField(max_length=20, choices=JOB_TYPE_CHOICES, default='fulltime')
@@ -24,5 +23,12 @@ class JobPost(models.Model):
     is_active = models.BooleanField(default=True)
     is_applied = models.BooleanField(default=False)
     
+    @property
+    def company_name(self):
+        try:
+            return self.publisher.companyprofile.company_name
+        except:
+            return "Unknown Company"
+    
     def __str__(self):
-        return f"{self.title} by {self.publisher.email}"
+        return f"{self.title} by {self.company_name}"
