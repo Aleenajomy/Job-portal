@@ -47,37 +47,24 @@
 #         return instance
 
 from rest_framework import serializers
-from accounts.models import User
-from .models import Profile
-
-
-class ProfileSerializer(serializers.ModelSerializer):
-    image = serializers.ImageField(required=False, allow_null=True)
-    
-    class Meta:
-        model = Profile
-        fields = ('image', 'skills', 'experience_years', 'address', 'bio')
-
+from .models import UserProfile, CompanyProfile
 
 class UserProfileSerializer(serializers.ModelSerializer):
-    profile = ProfileSerializer()
+    full_name = serializers.ReadOnlyField()
     
     class Meta:
-        model = User
-        fields = ('id', 'email', 'first_name', 'last_name', 'job_role', 'profile', 'is_verified')
-        read_only_fields = ('id', 'email', 'is_verified')
+        model = UserProfile
+        fields = ['full_name', 'profile_image', 'phone', 'location', 'bio', 'skills', 'experience_years', 'company_name']
     
-    def update(self, instance, validated_data):
-        profile_data = validated_data.pop('profile', None)
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
-        instance.save()
-        if profile_data is not None:
-            Profile.objects.update_or_create(user=instance, defaults=profile_data)
-        return instance
+    def create(self, validated_data):
+        validated_data['user'] = self.context['request'].user
+        return super().create(validated_data)
 
-
-class UserPublicSerializer(serializers.ModelSerializer):
+class CompanyProfileSerializer(serializers.ModelSerializer):
     class Meta:
-        model = User
-        fields = ('id', 'first_name', 'last_name', 'email', 'job_role')
+        model = CompanyProfile
+        fields = ['company_logo', 'company_name', 'company_email', 'company_phone', 'company_website', 'company_address', 'company_description']
+    
+    def create(self, validated_data):
+        validated_data['user'] = self.context['request'].user
+        return super().create(validated_data)

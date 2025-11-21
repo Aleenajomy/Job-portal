@@ -8,9 +8,9 @@
 # ]
 
 from django.urls import path
-from .views import *
+from .views import UserProfileView, CompanyProfileView
 
 urlpatterns = [
-    path('my-profile/', UserProfileAPI.as_view(), name='user_profile'),
-    path('my-profile/update/', UserProfileUpdateAPI.as_view(), name='user_profile_update'),
+    path('user-profile/', UserProfileView.as_view(), name='user_profile'),
+    path('company-profile/', CompanyProfileView.as_view(), name='company_profile'),
 ]

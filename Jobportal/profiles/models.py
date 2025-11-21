@@ -19,17 +19,41 @@
 #         return f"{self.user.first_name} {self.user.last_name}'s Profile"
 
 from django.db import models
-from django.conf import settings
-from django.utils import timezone
-import uuid
+from accounts.models import User
 
-class Profile(models.Model):
-    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='profile')
-    image = models.ImageField(upload_to='profiles/%Y/%m/%d/', blank=True, null=True)
-    skills = models.TextField(blank=True, null=True)
-    experience_years = models.IntegerField(blank=True, null=True)
-    address = models.TextField(blank=True, null=True)
-    bio = models.TextField(blank=True, null=True)
+# Profile for Employee & Employer (shared)
+class UserProfile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    
+    # Shared fields
+    profile_image = models.ImageField(upload_to='profile_images/', null=True, blank=True)
+    phone = models.CharField(max_length=20, null=True, blank=True)
+    location = models.CharField(max_length=255, null=True, blank=True)
+    bio = models.TextField(null=True, blank=True)
 
+    # Employee/Employer specific fields
+    skills = models.TextField(null=True, blank=True)  # Employee-specific
+    experience_years = models.IntegerField(null=True, blank=True)
+    company_name = models.CharField(max_length=255, null=True, blank=True)  # Employer-specific
+    
+    @property
+    def full_name(self):
+        return f"{self.user.first_name} {self.user.last_name}"
+    
     def __str__(self):
-        return f"{self.user.email}'s Profile"
+        return f"{self.full_name} Profile"
+
+# Profile for Company only
+class CompanyProfile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+
+    company_logo = models.ImageField(upload_to='company_logos/', null=True, blank=True)
+    company_name = models.CharField(max_length=255)
+    company_email = models.EmailField()
+    company_phone = models.CharField(max_length=20)
+    company_website = models.URLField(null=True, blank=True)
+    company_address = models.CharField(max_length=255)
+    company_description = models.TextField(null=True, blank=True)
+    
+    def __str__(self):
+        return self.company_name

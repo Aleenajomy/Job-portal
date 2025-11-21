@@ -6,7 +6,7 @@ from .serializers import JobPostListSerializer, JobPostDetailSerializer
 from .permissions import IsEmployerOrCompanyOrReadOnly
 
 class JobListCreateView(generics.ListCreateAPIView):
-    queryset = JobPost.objects.select_related("publisher", "publisher__profile").all().order_by('-created_at')
+    queryset = JobPost.objects.select_related("publisher").all().order_by('-created_at')
     permission_classes = [IsAuthenticatedOrReadOnly, IsEmployerOrCompanyOrReadOnly]
     
     def get_serializer_class(self):
@@ -23,7 +23,7 @@ class JobListCreateView(generics.ListCreateAPIView):
         serializer.save(publisher=self.request.user, publisher_role=role)
 
 class JobDetailView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = JobPost.objects.select_related("publisher", "publisher__profile").all()
+    queryset = JobPost.objects.select_related("publisher").all()
     serializer_class = JobPostDetailSerializer
     permission_classes = [IsAuthenticatedOrReadOnly, IsEmployerOrCompanyOrReadOnly]
     lookup_field = 'pk'

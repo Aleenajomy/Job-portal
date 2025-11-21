@@ -1,7 +1,13 @@
 from django.contrib import admin
-from .models import Profile
+from .models import UserProfile, CompanyProfile
 
-@admin.register(Profile)
-class ProfileAdmin(admin.ModelAdmin):
-    list_display = ['user', 'experience_years']
-    search_fields = ['user__first_name', 'user__last_name', 'user__email']
+@admin.register(UserProfile)
+class UserProfileAdmin(admin.ModelAdmin):
+    list_display = ['user', 'full_name', 'experience_years']
+    search_fields = ['user__email', 'full_name']
+    list_filter = ['user__job_role']
+
+@admin.register(CompanyProfile)
+class CompanyProfileAdmin(admin.ModelAdmin):
+    list_display = ['user', 'company_name', 'company_email', 'company_logo']
+    search_fields = ['user__email', 'company_name']
