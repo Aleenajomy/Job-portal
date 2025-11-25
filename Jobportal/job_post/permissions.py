@@ -18,3 +18,13 @@ class IsEmployerOrCompanyOrReadOnly(permissions.BasePermission):
             return True
         # only publisher can modify/delete
         return obj.publisher == request.user and self.has_permission(request, view)
+
+class CanApplyToJob(permissions.BasePermission):
+    """Permission for job applications - all authenticated users except job publisher"""
+    
+    def has_permission(self, request, view):
+        return request.user and request.user.is_authenticated
+    
+    def has_object_permission(self, request, view, obj):
+        # obj is the JobPost
+        return obj.publisher != request.user

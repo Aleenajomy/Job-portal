@@ -17,7 +17,7 @@ class User(AbstractUser):
     username = None
     email = models.EmailField(unique=True)
     first_name = models.CharField(max_length=50)
-    last_name = models.CharField(max_length=50)
+    last_name = models.CharField(max_length=50, blank=True)
     
     JOB_ROLE_CHOICES = [
         ('Employee', 'Employee'),
@@ -29,7 +29,7 @@ class User(AbstractUser):
     is_verified = models.BooleanField(default=False)
     
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['first_name', 'last_name']
+    REQUIRED_FIELDS = ['first_name']
     
     def generate_otp(self):
         self.otp = str(random.randint(100000, 999999))
