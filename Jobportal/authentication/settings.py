@@ -46,7 +46,9 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'accounts',
     'profiles',
-    'job_post'
+    'job_post',
+    'posts',
+    'follows'
 ]
 
 MIDDLEWARE = [
