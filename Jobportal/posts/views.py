@@ -132,6 +132,7 @@ class CommentCreateView(generics.CreateAPIView):
     def perform_create(self, serializer):
         post = get_object_or_404(Post, id=self.kwargs['post_id'])
         serializer.save(user=self.request.user, post=post)
+        Post.objects.filter(pk=post.pk).update(comments_count=F('comments_count') + 1)
 
     def create(self, request, *args, **kwargs):
         super().create(request, *args, **kwargs)
@@ -153,5 +154,8 @@ class CommentDetailView(generics.RetrieveUpdateDestroyAPIView):
         return Response({'message': 'Comment updated successfully'})
 
     def destroy(self, request, *args, **kwargs):
+        comment = self.get_object()
+        post = comment.post
         super().destroy(request, *args, **kwargs)
+        Post.objects.filter(pk=post.pk).update(comments_count=F('comments_count') - 1)
         return Response({'message': 'Comment deleted successfully'})
