@@ -1,11 +1,13 @@
 from rest_framework.response import Response
-from rest_framework import status
+from rest_framework import status, generics, permissions
 from rest_framework_simplejwt.tokens import RefreshToken
 from .serializers import *
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from django.core.mail import send_mail
 from django.conf import settings
+from django.db.models import Count
+import jwt
 from .models import User
 
 
@@ -18,16 +20,27 @@ class RegisterAPI(APIView):
             }, status=status.HTTP_400_BAD_REQUEST)
 
         user = serializer.save()
-        otp = user.generate_otp()
+        
+        try:
+            otp = user.generate_otp()
+        except Exception as e:
+            return Response({
+                'message': 'Failed to generate OTP. Please try again.'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
         # Send OTP for email verification
-        send_mail(
-            'Email Verification OTP',
-            f'Your OTP for email verification is: {otp}',
-            settings.DEFAULT_FROM_EMAIL,
-            [user.email],
-            fail_silently=False,
-        )
+        try:
+            send_mail(
+                'Email Verification OTP',
+                f'Your OTP for email verification is: {otp}',
+                settings.DEFAULT_FROM_EMAIL,
+                [user.email],
+                fail_silently=False,
+            )
+        except Exception as e:
+            return Response({
+                'message': 'Failed to send verification email. Please try again.'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
         return Response({
             'message': 'User registered successfully. Please verify your email with the OTP sent.',
@@ -48,16 +61,24 @@ class LoginAPI(APIView):
             return Response({
                 'message': 'User not found'
             }, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({
+                'message': 'Database error. Please try again later.'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
         if not user.is_verified:
             return Response({
                 'message': 'Please verify your email first'
             }, status=status.HTTP_400_BAD_REQUEST)
         
-        from rest_framework_simplejwt.tokens import RefreshToken
-        
-        refresh = RefreshToken.for_user(user)
-        access_token = str(refresh.access_token)
+        try:
+            from rest_framework_simplejwt.tokens import RefreshToken
+            refresh = RefreshToken.for_user(user)
+            access_token = str(refresh.access_token)
+        except Exception as e:
+            return Response({
+                'message': 'Failed to generate token. Please try again.'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
         return Response({
             'message': 'Login successful',
@@ -79,13 +100,18 @@ class ForgotPasswordAPI(APIView):
             otp = user.generate_otp()
             
             # Send OTP via email
-            send_mail(
-                'Password Reset OTP',
-                f'Your OTP for password reset is: {otp}',
-                settings.DEFAULT_FROM_EMAIL,
-                [user.email],
-                fail_silently=False,
-            )
+            try:
+                send_mail(
+                    'Password Reset OTP',
+                    f'Your OTP for password reset is: {otp}',
+                    settings.DEFAULT_FROM_EMAIL,
+                    [user.email],
+                    fail_silently=False,
+                )
+            except Exception as e:
+                return Response({
+                    'message': 'Failed to send OTP email. Please try again later.'
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             
             return Response({
                 'message': 'OTP sent to your email'
@@ -104,7 +130,12 @@ class ForgotPasswordOTPVerifyAPI(APIView):
             }, status=status.HTTP_400_BAD_REQUEST)
         
         # Store email in session for password reset
-        request.session['reset_email'] = serializer.validated_data['email']
+        try:
+            request.session['reset_email'] = serializer.validated_data['email']
+        except Exception as e:
+            return Response({
+                'message': 'Failed to store session data. Please try again.'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
         return Response({
             'message': 'OTP verified successfully. You can now reset your password.'
@@ -127,9 +158,14 @@ class ResetPasswordAPI(APIView):
         
         try:
             user = User.objects.get(email=email)
-            user.set_password(serializer.validated_data['new_password'])
-            user.otp = None
-            user.save()
+            try:
+                user.set_password(serializer.validated_data['new_password'])
+                user.otp = None
+                user.save()
+            except Exception as e:
+                return Response({
+                    'message': 'Failed to reset password. Please try again.'
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             
             # Clear session
             request.session.pop('reset_email', None)
@@ -152,9 +188,14 @@ class VerifyOTPAPI(APIView):
         
         try:
             user = User.objects.get(email=serializer.validated_data['email'])
-            user.is_verified = True
-            user.otp = None
-            user.save()
+            try:
+                user.is_verified = True
+                user.otp = None
+                user.save()
+            except Exception as e:
+                return Response({
+                    'message': 'Failed to verify email. Please try again.'
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             
             return Response({
                 'message': 'Email verified successfully. You can now login.'
@@ -177,13 +218,18 @@ class ResendOTPAPI(APIView):
             otp = user.generate_otp()
             
             # Send OTP via email
-            send_mail(
-                'Resend OTP',
-                f'Your new OTP is: {otp}',
-                settings.DEFAULT_FROM_EMAIL,
-                [user.email],
-                fail_silently=False,
-            )
+            try:
+                send_mail(
+                    'Resend OTP',
+                    f'Your new OTP is: {otp}',
+                    settings.DEFAULT_FROM_EMAIL,
+                    [user.email],
+                    fail_silently=False,
+                )
+            except Exception as e:
+                return Response({
+                    'message': 'Failed to send OTP email. Please try again later.'
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             
             return Response({
                 'message': 'New OTP sent to your email'
@@ -209,8 +255,13 @@ class ChangePasswordAPI(APIView):
                     'message': 'Incorrect old password'
                 }, status=status.HTTP_400_BAD_REQUEST)
             
-            user.set_password(serializer.validated_data['new_password'])
-            user.save()
+            try:
+                user.set_password(serializer.validated_data['new_password'])
+                user.save()
+            except Exception as e:
+                return Response({
+                    'message': 'Failed to change password. Please try again.'
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             
             return Response({
                 'message': 'Password changed successfully'
@@ -232,7 +283,6 @@ class UpdateJobRoleAPI(APIView):
         token = auth_header.split(' ')[1]
         try:
             UntypedToken(token)
-            import jwt
             decoded = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
             user = User.objects.get(id=decoded.get('user_id'))
         except (InvalidToken, TokenError, User.DoesNotExist):
@@ -249,6 +299,40 @@ class UpdateJobRoleAPI(APIView):
             return Response({'error': f'Invalid job role. Must be one of: {valid_choices}'}, status=400)
         
         user.job_role = job_role
-        user.save()
+        try:
+            user.save()
+        except Exception as e:
+            return Response({'error': 'Failed to update job role. Please try again.'}, status=500)
         
         return Response({'message': 'Job role updated successfully', 'job_role': user.job_role})
+
+class PublicUserListAPIView(generics.ListAPIView):
+    permission_classes = [permissions.AllowAny]
+    serializer_class = PublicUserSerializer
+    queryset = User.objects.annotate(followers_count=Count("followers")).order_by("-followers_count")
+
+class PublicUserProfileAPIView(generics.RetrieveAPIView):
+    permission_classes = [permissions.AllowAny]
+    serializer_class = PublicUserProfileSerializer
+    queryset = User.objects.annotate(
+        followers_count=Count("followers"),
+        following_count=Count("following")
+    )
+    lookup_field = 'id'
+    
+    def get_object(self):
+        user_id = self.kwargs.get('id')
+        # Validate ID is a positive integer
+        try:
+            user_id = int(user_id)
+            if user_id <= 0:
+                raise ValueError("Invalid ID")
+        except (ValueError, TypeError):
+            from django.http import Http404
+            raise Http404("Invalid user ID")
+        
+        try:
+            return super().get_object()
+        except Exception:
+            from django.http import Http404
+            raise Http404("User not found")

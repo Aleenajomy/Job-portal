@@ -1,11 +1,15 @@
-from rest_framework import viewsets, status
+from django.db import transaction
+from django.db.models import F
+from rest_framework import viewsets, status, generics
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.decorators import action
+from django.shortcuts import get_object_or_404
 
-from .models import Post, PostImage
-from .serializers import PostSerializer
+from .models import Post, PostImage, PostLike, Comment
+from .serializers import PostSerializer, CommentSerializer
+from .permissions import IsCommentOwner
 
 class PostViewSet(viewsets.ModelViewSet):
     queryset = Post.objects.prefetch_related('images').all()
@@ -82,3 +86,72 @@ class PostViewSet(viewsets.ModelViewSet):
             return Response({'message': 'Image deleted successfully'})
         except PostImage.DoesNotExist:
             return Response({'message': 'Image not found'}, status=404)
+
+    @action(detail=True, methods=["post"], permission_classes=[IsAuthenticated])
+    def like(self, request, pk=None):
+        """Like a post (idempotent)"""
+        post = self.get_object()
+        user = request.user
+
+        try:
+            with transaction.atomic():
+                obj, created = PostLike.objects.get_or_create(user=user, post=post)
+                if created:
+                    Post.objects.filter(pk=post.pk).update(likes_count=F("likes_count") + 1)
+        except Exception:
+            return Response({"detail": "Could not like post."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        return Response({
+            "liked": bool(created), 
+            "likes_count": Post.objects.get(pk=post.pk).likes_count
+        })
+
+    @action(detail=True, methods=["post"], permission_classes=[IsAuthenticated])
+    def unlike(self, request, pk=None):
+        """Unlike a post (idempotent)"""
+        post = self.get_object()
+        user = request.user
+
+        try:
+            with transaction.atomic():
+                deleted, _ = PostLike.objects.filter(user=user, post=post).delete()
+                if deleted:
+                    Post.objects.filter(pk=post.pk).update(likes_count=F("likes_count") - 1)
+        except Exception:
+            return Response({"detail": "Could not unlike post."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        return Response({
+            "unliked": bool(deleted), 
+            "likes_count": Post.objects.get(pk=post.pk).likes_count
+        })
+
+class CommentCreateView(generics.CreateAPIView):
+    serializer_class = CommentSerializer
+    permission_classes = [IsAuthenticated]
+
+    def perform_create(self, serializer):
+        post = get_object_or_404(Post, id=self.kwargs['post_id'])
+        serializer.save(user=self.request.user, post=post)
+
+    def create(self, request, *args, **kwargs):
+        super().create(request, *args, **kwargs)
+        return Response({'message': 'Comment added successfully'}, status=status.HTTP_201_CREATED)
+
+class CommentListView(generics.ListAPIView):
+    serializer_class = CommentSerializer
+
+    def get_queryset(self):
+        return Comment.objects.filter(post_id=self.kwargs['post_id']).order_by('-created_at')
+
+class CommentDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Comment.objects.all()
+    serializer_class = CommentSerializer
+    permission_classes = [IsAuthenticated, IsCommentOwner]
+
+    def update(self, request, *args, **kwargs):
+        super().update(request, *args, **kwargs)
+        return Response({'message': 'Comment updated successfully'})
+
+    def destroy(self, request, *args, **kwargs):
+        super().destroy(request, *args, **kwargs)
+        return Response({'message': 'Comment deleted successfully'})

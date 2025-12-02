@@ -25,8 +25,5 @@ urlpatterns = [
     path('profiles/', include('profiles.urls')),
     path('api/', include('job_post.urls')),
     path('api-post/', include('posts.urls')),
-    path('api/', include('follows.urls')),
+    path('api-follows/', include('follows.urls')),
 ]
-
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
