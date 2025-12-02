@@ -309,12 +309,14 @@ class UpdateJobRoleAPI(APIView):
 class PublicUserListAPIView(generics.ListAPIView):
     permission_classes = [permissions.AllowAny]
     serializer_class = PublicUserSerializer
-    queryset = User.objects.annotate(followers_count=Count("followers")).order_by("-followers_count")
+    queryset = User.objects.select_related('userprofile', 'companyprofile').annotate(followers_count=Count("followers")).order_by("-followers_count")
 
 class PublicUserProfileAPIView(generics.RetrieveAPIView):
     permission_classes = [permissions.AllowAny]
     serializer_class = PublicUserProfileSerializer
-    queryset = User.objects.annotate(
+    queryset = User.objects.select_related('userprofile', 'companyprofile').prefetch_related(
+        'followers', 'following', 'posts__images', 'jobs'
+    ).annotate(
         followers_count=Count("followers"),
         following_count=Count("following")
     )

@@ -146,72 +146,111 @@ class ChangePasswordSerializer(serializers.Serializer):
         return data
 
 class PublicUserSerializer(serializers.ModelSerializer):
-    followers_count = serializers.IntegerField(read_only=True)
-    username = serializers.SerializerMethodField()
+    full_name = serializers.SerializerMethodField()
+    role = serializers.CharField(source='job_role')
+    photo = serializers.SerializerMethodField()
+    followers = serializers.IntegerField(source='followers_count', read_only=True)
+    bio = serializers.SerializerMethodField()
+    location = serializers.SerializerMethodField()
+    posts_count = serializers.SerializerMethodField()
+    recent_posts = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ("id", "username", "email", "followers_count")
+        fields = ("full_name", "role", "photo", "followers", "bio", "location", "posts_count", "recent_posts")
         read_only_fields = fields
 
-    def get_username(self, obj):
-        first = (obj.first_name or "").strip()
-        last = (obj.last_name or "").strip()
-        
-        if first and last:
-            return f"{first} {last}"
-        elif first:
-            return first
-        elif last:
-            return last
-        
-        return obj.username or ""
+    def get_full_name(self, obj):
+        return f"{obj.first_name} {obj.last_name}".strip()
+    
+    def get_photo(self, obj):
+        try:
+            if obj.job_role == 'Company':
+                return obj.companyprofile.company_logo.url if obj.companyprofile.company_logo else None
+            else:
+                return obj.userprofile.profile_image.url if obj.userprofile.profile_image else None
+        except:
+            return None
+    
+    def get_bio(self, obj):
+        try:
+            if obj.job_role == 'Company':
+                return obj.companyprofile.company_description
+            else:
+                return obj.userprofile.bio
+        except:
+            return None
+    
+    def get_location(self, obj):
+        try:
+            if obj.job_role == 'Company':
+                return obj.companyprofile.company_address
+            else:
+                return obj.userprofile.location
+        except:
+            return None
+    
+    def get_posts_count(self, obj):
+        return obj.posts.count()
+    
+    def get_recent_posts(self, obj):
+        posts = obj.posts.all()[:3]
+        return [{
+            "content": post.content[:50] + "..." if len(post.content) > 50 else post.content,
+            "images": post.images.count()
+        } for post in posts]
 
 class PublicUserProfileSerializer(serializers.ModelSerializer):
-    followers_count = serializers.IntegerField(read_only=True)
-    following_count = serializers.IntegerField(read_only=True)
-    masked_email = serializers.SerializerMethodField()
-    profile = serializers.SerializerMethodField()
+    full_name = serializers.SerializerMethodField()
+    role = serializers.CharField(source='job_role')
+    photo = serializers.SerializerMethodField()
+    followers = serializers.IntegerField(source='followers_count', read_only=True)
+    bio = serializers.SerializerMethodField()
+    location = serializers.SerializerMethodField()
+    posts_count = serializers.SerializerMethodField()
+    recent_posts = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ("id", "first_name", "last_name", "masked_email", "job_role", "followers_count", "following_count", "profile")
+        fields = ("full_name", "role", "photo", "followers", "bio", "location", "posts_count", "recent_posts")
         read_only_fields = fields
 
-    def get_masked_email(self, obj):
-        email = getattr(obj, "email", "") or ""
-        if "@" not in email:
-            return ""
-        local, domain = email.split("@", 1)
-        if len(local) <= 2:
-            local_masked = escape(local[0]) + "***"
-        else:
-            local_masked = escape(local[:2]) + "***"
-        return f"{local_masked}@{escape(domain)}"
-
-    def get_profile(self, obj):
-        if obj.job_role == 'COMPANY':
-            try:
-                from profiles.models import CompanyProfile
-                profile = CompanyProfile.objects.get(user=obj)
-                return {
-                    "company_name": profile.company_name,
-                    "company_description": profile.company_description,
-                    "company_website": profile.company_website,
-                    "company_address": profile.company_address
-                }
-            except CompanyProfile.DoesNotExist:
-                return None
-        else:
-            try:
-                from profiles.models import UserProfile
-                profile = UserProfile.objects.get(user=obj)
-                return {
-                    "bio": profile.bio,
-                    "location": profile.location,
-                    "skills": profile.skills,
-                    "experience_years": profile.experience_years
-                }
-            except UserProfile.DoesNotExist:
-                return None
-
+    def get_full_name(self, obj):
+        return f"{obj.first_name} {obj.last_name}".strip()
+    
+    def get_photo(self, obj):
+        try:
+            if obj.job_role == 'Company':
+                return obj.companyprofile.company_logo.url if obj.companyprofile.company_logo else None
+            else:
+                return obj.userprofile.profile_image.url if obj.userprofile.profile_image else None
+        except:
+            return None
+    
+    def get_bio(self, obj):
+        try:
+            if obj.job_role == 'Company':
+                return obj.companyprofile.company_description
+            else:
+                return obj.userprofile.bio
+        except:
+            return None
+    
+    def get_location(self, obj):
+        try:
+            if obj.job_role == 'Company':
+                return obj.companyprofile.company_address
+            else:
+                return obj.userprofile.location
+        except:
+            return None
+    
+    def get_posts_count(self, obj):
+        return obj.posts.count()
+    
+    def get_recent_posts(self, obj):
+        posts = obj.posts.all()[:3]
+        return [{
+            "content": post.content[:50] + "..." if len(post.content) > 50 else post.content,
+            "images": post.images.count()
+        } for post in posts]
