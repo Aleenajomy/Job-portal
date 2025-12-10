@@ -9,7 +9,7 @@ from django.shortcuts import get_object_or_404
 
 from .models import Post, PostImage, PostLike, Comment
 from .serializers import PostSerializer, CommentSerializer
-from .permissions import IsCommentOwner
+from .permissions import IsCommentOwner, IsPostOwnerOrCommentOwner
 
 class PostViewSet(viewsets.ModelViewSet):
     queryset = Post.objects.prefetch_related('images').all()
@@ -25,6 +25,9 @@ class PostViewSet(viewsets.ModelViewSet):
     def get_object(self):
         obj = super().get_object()
         if self.action in ['update', 'partial_update', 'destroy'] and obj.author != self.request.user:
+            # Allow admins/staff to delete any post
+            if self.action == 'destroy' and self.request.user.is_staff:
+                return obj
             from rest_framework.exceptions import PermissionDenied
             raise PermissionDenied("You can only edit/delete your own posts")
         return obj
@@ -125,6 +128,27 @@ class PostViewSet(viewsets.ModelViewSet):
             "likes_count": Post.objects.get(pk=post.pk).likes_count
         })
 
+    @action(detail=True, methods=['delete'], url_path='comments/(?P<comment_id>[^/.]+)', permission_classes=[IsAuthenticated])
+    def delete_comment(self, request, pk=None, comment_id=None):
+        """Delete a comment on this post (only post owner can delete)"""
+        try:
+            post = Post.objects.get(pk=pk)
+        except Post.DoesNotExist:
+            return Response({'detail': 'Post not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        if post.author != request.user and not request.user.is_staff:
+            return Response({'detail': 'Only post owner or admin can delete comments'}, status=status.HTTP_403_FORBIDDEN)
+        
+        try:
+            comment = Comment.objects.get(id=comment_id, post=post)
+            if comment.user == request.user and not request.user.is_staff:
+                return Response({'detail': 'Comment authors should use /comments/{id}/ endpoint'}, status=status.HTTP_400_BAD_REQUEST)
+            comment.delete()
+            Post.objects.filter(pk=post.pk).update(comments_count=F('comments_count') - 1)
+            return Response({'message': 'Comment deleted successfully'})
+        except Comment.DoesNotExist:
+            return Response({'detail': 'Comment not found'}, status=status.HTTP_404_NOT_FOUND)
+
 class CommentCreateView(generics.CreateAPIView):
     serializer_class = CommentSerializer
     permission_classes = [IsAuthenticated]
@@ -147,7 +171,7 @@ class CommentListView(generics.ListAPIView):
 class CommentDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Comment.objects.all()
     serializer_class = CommentSerializer
-    permission_classes = [IsAuthenticated, IsCommentOwner]
+    permission_classes = [IsAuthenticated, IsPostOwnerOrCommentOwner]
 
     def update(self, request, *args, **kwargs):
         super().update(request, *args, **kwargs)

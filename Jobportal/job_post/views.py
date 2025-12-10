@@ -106,9 +106,11 @@ class JobListCreateView(generics.ListCreateAPIView):
         return queryset
     
     def create(self, request, *args, **kwargs):
-        response = super().create(request, *args, **kwargs)
-        response.data['message'] = 'Job created successfully'
-        return response
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            self.perform_create(serializer)
+            return Response({'message': 'Job created successfully'}, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def perform_create(self, serializer):
         role = getattr(self.request.user, "job_role", None)
@@ -139,6 +141,11 @@ class JobApplicationView(generics.CreateAPIView):
     permission_classes = [IsAuthenticated, CanApplyToJob]
     
     def create(self, request, *args, **kwargs):
+        # Check if user is a company
+        user_role = getattr(request.user, 'job_role', None)
+        if user_role == 'Company':
+            return Response({'message': 'Companies cannot apply for jobs. You can only post jobs and view applicants.'}, status=403)
+        
         # Get job from URL parameter
         job_id = self.kwargs.get('job_id')
         try:
@@ -212,13 +219,41 @@ class JobApplicantsView(generics.ListAPIView):
         except JobPost.DoesNotExist:
             return JobApplication.objects.none()
         
-        return JobApplication.objects.filter(job=job).select_related('applicant').order_by('-applied_at')
+        queryset = JobApplication.objects.filter(job=job).select_related('applicant').order_by('-applied_at')
+        
+        # Filter by status if provided
+        status = self.request.query_params.get('status')
+        if status and status != 'all':
+            queryset = queryset.filter(status=status)
+        
+        return queryset
     
     def list(self, request, *args, **kwargs):
+        job_id = self.kwargs['job_id']
+        user = self.request.user
+        
+        try:
+            job = JobPost.objects.get(id=job_id, publisher=user)
+        except JobPost.DoesNotExist:
+            return Response({'message': 'Job not found'}, status=404)
+        
+        # Get filtered queryset
         queryset = self.get_queryset()
+        
+        if queryset.count() == 0:
+            filter_status = self.request.query_params.get('status')
+            if filter_status and filter_status != 'all':
+                message = f'No applicants found with status: {filter_status}'
+            else:
+                message = 'No applications received for this job yet.'
+            return Response({
+                'message': message,
+                'applicants': []
+            })
+        
         serializer = self.get_serializer(queryset, many=True)
         return Response({
-            'total_applicants': queryset.count(),
+            'message': f'{queryset.count()} applicants found',
             'applicants': serializer.data
         })
 
@@ -234,7 +269,14 @@ class MyAppliedJobsView(generics.ListAPIView):
         role = getattr(user, 'job_role', None)
         
         if role in ('Employee', 'Employer'):
-            return JobApplication.objects.filter(applicant=user).select_related('job', 'job__publisher').order_by('-applied_at')
+            queryset = JobApplication.objects.filter(applicant=user).select_related('job', 'job__publisher').order_by('-applied_at')
+            
+            # Filter by status if provided
+            status = self.request.query_params.get('status')
+            if status and status != 'all':
+                queryset = queryset.filter(status=status)
+            
+            return queryset
         else:
             return JobApplication.objects.none()
     
@@ -248,17 +290,21 @@ class MyAppliedJobsView(generics.ListAPIView):
             }, status=403)
         
         queryset = self.get_queryset()
-        page = self.paginate_queryset(queryset)
-        if page is not None:
-            serializer = self.get_serializer(page, many=True)
-            return self.get_paginated_response({
-                'total_count': queryset.count(),
-                'results': serializer.data
+        
+        if queryset.count() == 0:
+            filter_status = self.request.query_params.get('status')
+            if filter_status and filter_status != 'all':
+                message = f'No applications found with status: {filter_status}'
+            else:
+                message = 'You have not applied to any jobs yet.'
+            return Response({
+                'message': message,
+                'results': []
             })
         
         serializer = self.get_serializer(queryset, many=True)
         return Response({
-            'total_count': queryset.count(),
+            'message': f'{queryset.count()} applications found',
             'results': serializer.data
         })
 
@@ -291,4 +337,36 @@ class UpdateApplicationStatusView(generics.UpdateAPIView):
             'message': 'Application status updated successfully',
             'status': status
         })
+
+class ApplicationStatusStatsView(generics.GenericAPIView):
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request, *args, **kwargs):
+        user = self.request.user
+        role = getattr(user, 'job_role', None)
+        
+        if role == 'Company':
+            return Response({
+                'message': 'Companies cannot view application stats as they do not apply for jobs.'
+            }, status=403)
+        
+        # Get user's applications
+        applications = JobApplication.objects.filter(applicant=user)
+        
+        # Calculate status statistics
+        stats = {
+            'total_applications': applications.count(),
+            'status_breakdown': {
+                'applied': applications.filter(status='applied').count(),
+                'shortlisted': applications.filter(status='shortlisted').count(),
+                'resume_review': applications.filter(status='resume_review').count(),
+                'interview_scheduled': applications.filter(status='interview_scheduled').count(),
+                'interviewed': applications.filter(status='interviewed').count(),
+                'selected': applications.filter(status='selected').count(),
+                'rejected': applications.filter(status='rejected').count(),
+            },
+            'status_choices': JobApplication.STATUS_CHOICES
+        }
+        
+        return Response(stats)
 

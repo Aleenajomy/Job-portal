@@ -306,35 +306,4 @@ class UpdateJobRoleAPI(APIView):
         
         return Response({'message': 'Job role updated successfully', 'job_role': user.job_role})
 
-class PublicUserListAPIView(generics.ListAPIView):
-    permission_classes = [permissions.AllowAny]
-    serializer_class = PublicUserSerializer
-    queryset = User.objects.select_related('userprofile', 'companyprofile').annotate(followers_count=Count("followers")).order_by("-followers_count")
 
-class PublicUserProfileAPIView(generics.RetrieveAPIView):
-    permission_classes = [permissions.AllowAny]
-    serializer_class = PublicUserProfileSerializer
-    queryset = User.objects.select_related('userprofile', 'companyprofile').prefetch_related(
-        'followers', 'following', 'posts__images', 'jobs'
-    ).annotate(
-        followers_count=Count("followers"),
-        following_count=Count("following")
-    )
-    lookup_field = 'id'
-    
-    def get_object(self):
-        user_id = self.kwargs.get('id')
-        # Validate ID is a positive integer
-        try:
-            user_id = int(user_id)
-            if user_id <= 0:
-                raise ValueError("Invalid ID")
-        except (ValueError, TypeError):
-            from django.http import Http404
-            raise Http404("Invalid user ID")
-        
-        try:
-            return super().get_object()
-        except Exception:
-            from django.http import Http404
-            raise Http404("User not found")

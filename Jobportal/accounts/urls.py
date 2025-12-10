@@ -11,6 +11,5 @@ urlpatterns = [
     path('resend-otp/', ResendOTPAPI.as_view(), name='resend_otp'),
     path('change-password/', ChangePasswordAPI.as_view(), name='change_password'),
     path('update-job-role/', UpdateJobRoleAPI.as_view(), name='update_job_role'),
-    path('public-users/', PublicUserListAPIView.as_view(), name='public_user_list'),
-    path('public-profile/<int:id>/', PublicUserProfileAPIView.as_view(), name='public_user_profile'),
+
 ]
