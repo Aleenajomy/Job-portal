@@ -61,7 +61,7 @@ const OTPVerification = ({ email, onVerifySuccess, onBack }) => {
 
     try {
       // API call to verify OTP
-      const response = await fetch('/api/verify-otp', {
+      const response = await fetch('http://127.0.0.1:8000/accounts/verify-otp/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

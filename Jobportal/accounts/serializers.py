@@ -41,9 +41,10 @@ class RegisterSerializer(serializers.ModelSerializer):
     
     def create(self, validated_data):
         validated_data.pop('confirm_password')
+        password = validated_data.pop('password')
         try:
             user = User(**validated_data)
-            user.set_password(validated_data['password'])
+            user.set_password(password)
             user.save()
             return user
         except Exception as e:

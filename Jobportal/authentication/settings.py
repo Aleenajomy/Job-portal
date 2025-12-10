@@ -48,10 +48,12 @@ INSTALLED_APPS = [
     'profiles',
     'job_post',
     'posts',
-    'follows'
+    'follows',
+    'corsheaders',
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -170,3 +172,16 @@ DEFAULT_FROM_EMAIL = 'noreplay@gmail.com'
 
 # Add Pillow for ImageField
 INSTALLED_APPS += []
+
+
+# CORS settings
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_ALL_ORIGINS = True
+
+
+

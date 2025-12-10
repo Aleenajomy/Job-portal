@@ -63,25 +63,105 @@ export default function Auth() {
     return Object.keys(errs).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validate()) return;
     
     const currentForm = currentView === 'forgot' ? forgotPasswordForm : currentView === 'signup' ? signupForm : loginForm;
     
     if (currentView === 'forgot') {
-      console.log("Forgot Password", currentForm);
-      setOtpEmail(currentForm.email);
-      setOtpType("forgot");
-      setCurrentView('otp');
+      try {
+        const response = await fetch('http://127.0.0.1:8000/accounts/forgot-password/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: currentForm.email
+          })
+        });
+        
+        if (response.ok) {
+          setOtpEmail(currentForm.email);
+          setOtpType("forgot");
+          setCurrentView('otp');
+        } else {
+          const errorData = await response.json();
+          setErrors(errorData);
+        }
+      } catch (error) {
+        console.error('Forgot password error:', error);
+        setErrors({ general: 'Failed to send reset email. Please try again.' });
+      }
     } else if (currentView === 'signup') {
-      console.log("Sign Up", currentForm);
-      setOtpEmail(currentForm.email);
-      setOtpType("signup");
-      setCurrentView('otp');
+      try {
+        console.log('Sending registration data:', {
+          first_name: currentForm.firstName,
+          last_name: currentForm.lastName,
+          email: currentForm.email,
+          password: currentForm.password,
+          confirm_password: currentForm.confirm,
+          job_role: currentForm.job_role
+        });
+        
+        const response = await fetch('http://127.0.0.1:8000/accounts/register/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            first_name: currentForm.firstName,
+            last_name: currentForm.lastName,
+            email: currentForm.email,
+            password: currentForm.password,
+            confirm_password: currentForm.confirm,
+            job_role: currentForm.job_role
+          })
+        });
+        
+        console.log('Response status:', response.status);
+        
+        if (response.ok) {
+          const data = await response.json();
+          console.log('Registration successful:', data);
+          setOtpEmail(currentForm.email);
+          setOtpType("signup");
+          setCurrentView('otp');
+        } else {
+          const errorData = await response.json();
+          console.log('Registration error:', errorData);
+          setErrors(errorData.message || errorData);
+        }
+      } catch (error) {
+        console.error('Registration error:', error);
+        setErrors({ general: 'Registration failed. Please try again.' });
+      }
     } else {
-      console.log("Login", currentForm);
-      alert("Login validated. Connect your API.");
+      try {
+        const response = await fetch('http://127.0.0.1:8000/accounts/login/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: currentForm.email,
+            password: currentForm.password
+          })
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          localStorage.setItem('token', data.token);
+          alert('Login successful!');
+          // Redirect to dashboard or main app
+        } else {
+          const errorData = await response.json();
+          setErrors(errorData);
+        }
+      } catch (error) {
+        console.error('Login error:', error);
+        setErrors({ general: 'Login failed. Please try again.' });
+      }
     }
   };
 

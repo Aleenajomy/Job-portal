@@ -33,7 +33,7 @@
 
 .card {
   width: 100%;
-  max-width: 420px;
+  max-width: 350px;
   flex-shrink: 0;
   background: #ffffff;
   border-radius: 16px;
@@ -117,17 +117,20 @@
 .form-container {
   padding: 12px;
   margin: 0;
-  height: 550px;
+  height: 680px;
   width: 100%;
   position: relative;
   background: #FFFDF9;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
 }
 
 .form-container.signup-active,
 .form-container.login-active {
   background: #FFFDF9;
-  padding: 12px;
-  height: 550px;
+  padding: 6px;
+  height: 680px;
 }
 
 .form-container.forgot-active {
@@ -145,13 +148,15 @@
 
 .title {
   font-size: 20px;
-  margin: 0 0 8px;
+  margin: 0 0 3px;
+  padding: 4px;
   font-weight: 700;
   color: #000;
 }
 
 .subtitle {
-  margin: 0 0 12px;
+  margin: 0 0 6px;
+  padding: 4px;
   color: #666;
   font-size: 13px;
   font-weight: 500;
@@ -159,20 +164,24 @@
 }
 
 .form {
-  display: block;
+  display: flex;
+  flex-direction: column;
   width: 100%;
   overflow-wrap: break-word;
+  gap: 2px;
+  padding: 0 15px;
 }
 
 .label {
   display: block;
-  margin-bottom: 6px;
+  margin-bottom: 2px;
   overflow-wrap: break-word;
 }
 
 .name-row {
   display: flex;
-  gap: 12px;
+  gap: 8px;
+  margin-bottom: 2px;
 }
 
 .name-row .label {
@@ -183,7 +192,7 @@
   display: block;
   font-size: 11px;
   color: #999;
-  margin-bottom: 2px;
+  margin-bottom: 1px;
   text-transform: capitalize;
 }
 
@@ -293,7 +302,7 @@
   font-weight: 600;
   font-size: 15px;
   cursor: pointer;
-  margin-bottom: 6px;
+  margin: 8px 0 4px 0;
 }
 
 .primary-btn:hover {
@@ -406,33 +415,71 @@
   cursor: pointer;
 }
 
-/* Responsive */
+/* Large Desktop (4K and above) */
+@media (min-width: 1920px) {
+  .card { max-width: 520px; }
+  .form-container { height: 650px; padding: 24px; }
+  .title { font-size: 22px; }
+  .subtitle { font-size: 14px; }
+  .input { padding: 14px 16px; font-size: 15px; }
+  .primary-btn { padding: 16px; font-size: 16px; }
+}
+
+/* Desktop */
+@media (min-width: 1280px) and (max-width: 1919px) {
+  .card { max-width: 480px; }
+  .form-container { height: 620px; }
+}
+
+/* Laptop */
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .card { max-width: 460px; }
+  .form-container { height: 600px; }
+}
+
+/* Tablet and below */
 @media (max-width: 768px) {
-  .auth-container {
-    flex-direction: column;
-    gap: 30px;
-  }
-  .illustration-section {
-    display: none;
-  }
-  .card {
-    max-width: 100%;
-  }
-  .form-container.signup-active,
-  .form-container.login-active {
-    height: 550px;
-  }
-  .form-container.forgot-active {
-    height: 300px;
-  }
-  .form-container.otp-active {
-    height: 380px;
-  }
-  .name-row {
-    flex-direction: column;
-    gap: 0;
-  }
-  .name-row .label {
-    margin-bottom: 8px;
-  }
+  .auth-container { flex-direction: column; gap: 20px; }
+  .illustration-section { display: none; }
+  .card { max-width: 480px; }
+  .form-container { height: auto; min-height: 500px; }
+}
+
+/* Mobile landscape and below */
+@media (max-width: 640px) {
+  .auth-screen { padding: 12px; }
+  .auth-container { gap: 0; }
+  .illustration-section { display: none; }
+  .card { max-width: 100%; }
+  .form-container { padding: 16px; height: auto; min-height: 450px; }
+  .label { margin-bottom: 12px; }
+  .name-row { flex-direction: column; gap: 0; }
+}
+
+/* Mobile portrait */
+@media (max-width: 480px) {
+  .auth-screen { padding: 8px; }
+  .illustration-section { display: none; }
+  .logo-container { padding: 16px; }
+  .form-container { padding: 12px; height: auto; min-height: 400px; }
+  .title { font-size: 18px; height: auto; }
+  .subtitle { font-size: 12px; height: auto; margin-bottom: 16px; }
+  .input { padding: 10px 12px; font-size: 13px; }
+  .primary-btn { padding: 12px; font-size: 14px; }
+  .social-row { gap: 8px; }
+  .social-btn { font-size: 11px; padding: 8px; }
+  .social-icon { width: 36px; height: 36px; }
+  .label { margin-bottom: 10px; }
+  .agree { font-size: 11px; }
+  .name-row { flex-direction: column; gap: 0; }
+}
+
+/* Small mobile */
+@media (max-width: 360px) {
+  .card { border-radius: 16px; }
+  .tab { padding: 8px 12px; font-size: 14px; }
+  .form-container { padding: 10px; }
+  .input { padding: 8px 10px; font-size: 12px; }
+  .social-row { flex-direction: column; }
+  .social-btn { flex-direction: row; justify-content: center; }
 }
