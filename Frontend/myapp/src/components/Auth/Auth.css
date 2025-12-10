@@ -146,6 +146,12 @@
   text-align: center;
 }
 
+.form-container.reset-active {
+  background: #FFFDF9;
+  padding: 12px;
+  height: 350px;
+}
+
 .title {
   font-size: 20px;
   margin: 0 0 3px;

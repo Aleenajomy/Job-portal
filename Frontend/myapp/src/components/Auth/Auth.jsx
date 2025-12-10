@@ -4,9 +4,10 @@ import LoginForm from "./Login/LoginForm";
 import SignUpForm from "./SignUp/SignUpForm";
 import ForgotPasswordForm from "./ForgotPassword/ForgotPasswordForm";
 import OTPVerification from "./OTPVerification/OTPVerification";
+import ResetPasswordForm from "./ResetPassword/ResetPasswordForm";
 
 export default function Auth() {
-  const [currentView, setCurrentView] = useState('login'); // 'login', 'signup', 'forgot', 'otp'
+  const [currentView, setCurrentView] = useState('login'); // 'login', 'signup', 'forgot', 'otp', 'reset'
   const [otpEmail, setOtpEmail] = useState("");
   const [otpType, setOtpType] = useState(""); // "signup" or "forgot"
   
@@ -29,8 +30,14 @@ export default function Auth() {
     email: "",
   });
 
+  const [resetPasswordForm, setResetPasswordForm] = useState({
+    newPassword: "",
+    confirmPassword: "",
+  });
+
   const [showSignupPassword, setShowSignupPassword] = useState(false);
   const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [showResetPassword, setShowResetPassword] = useState(false);
   const [errors, setErrors] = useState({});
 
   const handleSignupChange = (e) => {
@@ -48,13 +55,20 @@ export default function Auth() {
     setForgotPasswordForm((p) => ({ ...p, [name]: value }));
   };
 
+  const handleResetPasswordChange = (e) => {
+    const { name, value } = e.target;
+    setResetPasswordForm((p) => ({ ...p, [name]: value }));
+  };
+
   const validate = () => {
     const errs = {};
-    const currentForm = currentView === 'forgot' ? forgotPasswordForm : currentView === 'signup' ? signupForm : loginForm;
+    const currentForm = currentView === 'forgot' ? forgotPasswordForm : currentView === 'signup' ? signupForm : currentView === 'reset' ? resetPasswordForm : loginForm;
     
     if (currentView === 'signup' && !currentForm.firstName?.trim()) errs.firstName = "First name is required";
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(currentForm.email)) errs.email = "Enter a valid email";
-    if (currentView !== 'forgot' && currentForm.password.length < 6) errs.password = "Password must be at least 6 characters";
+    if (currentView !== 'reset' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(currentForm.email)) errs.email = "Enter a valid email";
+    if (currentView === 'reset' && currentForm.newPassword.length < 6) errs.newPassword = "Password must be at least 6 characters";
+    if (currentView === 'reset' && currentForm.newPassword !== currentForm.confirmPassword) errs.confirmPassword = "Passwords do not match";
+    if (currentView !== 'forgot' && currentView !== 'reset' && currentForm.password.length < 6) errs.password = "Password must be at least 6 characters";
     if (currentView === 'signup' && currentForm.password !== currentForm.confirm) errs.confirm = "Passwords do not match";
     if (currentView === 'signup' && !currentForm.job_role) errs.job_role = "Job role is required";
     if (currentView === 'signup' && !currentForm.agree) errs.agree = "You must agree to the terms";
@@ -67,7 +81,7 @@ export default function Auth() {
     e.preventDefault();
     if (!validate()) return;
     
-    const currentForm = currentView === 'forgot' ? forgotPasswordForm : currentView === 'signup' ? signupForm : loginForm;
+    const currentForm = currentView === 'forgot' ? forgotPasswordForm : currentView === 'signup' ? signupForm : currentView === 'reset' ? resetPasswordForm : loginForm;
     
     if (currentView === 'forgot') {
       try {
@@ -136,6 +150,31 @@ export default function Auth() {
         console.error('Registration error:', error);
         setErrors({ general: 'Registration failed. Please try again.' });
       }
+    } else if (currentView === 'reset') {
+      try {
+        const response = await fetch('http://127.0.0.1:8000/accounts/reset-password/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: otpEmail,
+            new_password: currentForm.newPassword,
+            confirm_password: currentForm.confirmPassword
+          })
+        });
+        
+        if (response.ok) {
+          alert('Password reset successfully!');
+          setCurrentView('login');
+        } else {
+          const errorData = await response.json();
+          setErrors(errorData.message || errorData);
+        }
+      } catch (error) {
+        console.error('Reset password error:', error);
+        setErrors({ general: 'Password reset failed. Please try again.' });
+      }
     } else {
       try {
         const response = await fetch('http://127.0.0.1:8000/accounts/login/', {
@@ -170,8 +209,7 @@ export default function Auth() {
       alert("Account created successfully!");
       setCurrentView('login');
     } else {
-      alert("Email verified! You can now reset your password.");
-      setCurrentView('login');
+      setCurrentView('reset');
     }
   };
 
@@ -188,6 +226,7 @@ export default function Auth() {
       case 'signup': return "Create an account";
       case 'forgot': return "Forgot Your Password?";
       case 'otp': return "Verify Your Email";
+      case 'reset': return "Reset Your Password";
       default: return "Welcome Back!";
     }
   };
@@ -197,6 +236,7 @@ export default function Auth() {
       case 'signup': return "Build your profile, connect with peers, and discover jobs.";
       case 'forgot': return "Enter your email address and we'll send you an OTP to reset your password.";
       case 'otp': return `We've sent a 6-digit code to ${otpEmail}`;
+      case 'reset': return "Enter your new password below.";
       default: return "Login to your account to connect with professionals and explore opportunities.";
     }
   };
@@ -206,6 +246,7 @@ export default function Auth() {
       case 'signup': return "/Sign up-rafiki.png";
       case 'forgot': return "/Forgot password-rafiki.png";
       case 'otp': return "/Enter OTP-rafiki.png";
+      case 'reset': return "/Reset password-rafiki.png";
       default: return "/Tablet-login-rafiki.png";
     }
   };
@@ -234,13 +275,13 @@ export default function Auth() {
 
   return (
     <div className="auth-screen">
-      {currentView === 'forgot' && (
+      {(currentView === 'forgot' || currentView === 'reset') && (
         <button className="back-btn" onClick={() => setCurrentView('login')}>
           ←
         </button>
       )}
       
-      {currentView !== 'forgot' && (
+      {(currentView !== 'forgot' && currentView !== 'reset') && (
         <div className="logo-container">
           <h1 className="logo">Logo</h1>
         </div>
@@ -249,7 +290,7 @@ export default function Auth() {
       <div className="auth-container">
         <div className="card">
           
-          {currentView !== 'forgot' && (
+          {(currentView !== 'forgot' && currentView !== 'reset') && (
             <div className="tab-row">
               <button 
                 className={`tab ${currentView === 'login' ? "active-tab" : ""}`}
@@ -277,6 +318,15 @@ export default function Auth() {
                 handleChange={handleForgotPasswordChange}
                 handleSubmit={handleSubmit}
               />
+            ) : currentView === 'reset' ? (
+              <ResetPasswordForm
+                form={resetPasswordForm}
+                errors={errors}
+                showPassword={showResetPassword}
+                setShowPassword={setShowResetPassword}
+                handleChange={handleResetPasswordChange}
+                handleSubmit={handleSubmit}
+              />
             ) : currentView === 'signup' ? (
               <SignUpForm 
                 form={signupForm}
@@ -298,7 +348,7 @@ export default function Auth() {
               />
             )}
 
-            {currentView !== 'forgot' && (
+            {(currentView !== 'forgot' && currentView !== 'reset') && (
               <>
                 <div className="or-line">Or {currentView === 'signup' ? "Sign Up" : "Login"} With</div>
                 <div className="social-row">

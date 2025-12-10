@@ -149,11 +149,11 @@ class ResetPasswordAPI(APIView):
                 'message': serializer.errors
             }, status=status.HTTP_400_BAD_REQUEST)
         
-        # Get email from session or require it in the request
-        email = request.session.get('reset_email')
+        # Get email from request data
+        email = request.data.get('email')
         if not email:
             return Response({
-                'message': 'Session expired. Please start the password reset process again.'
+                'message': 'Email is required for password reset.'
             }, status=status.HTTP_400_BAD_REQUEST)
         
         try:
@@ -167,8 +167,8 @@ class ResetPasswordAPI(APIView):
                     'message': 'Failed to reset password. Please try again.'
                 }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             
-            # Clear session
-            request.session.pop('reset_email', None)
+            # Clear any existing OTP
+            user.otp = None
             
             return Response({
                 'message': 'Password reset successfully'
