@@ -13,6 +13,7 @@ class JobPost(models.Model):
     requirements = models.JSONField(default=list, blank=True)  # Required skills as list
     location = models.CharField(max_length=255, blank=True, null=True, db_index=True)
     salary = models.CharField(max_length=100, blank=True, null=True)
+    experience = models.CharField(max_length=100, blank=True, null=True, db_index=True)
     job_type = models.CharField(max_length=20, choices=JOB_TYPE_CHOICES, default='fulltime', db_index=True)
     work_mode = models.CharField(max_length=20, choices=[('remote','Remote'),('hybrid','Hybrid'),('onsite','On-site')], default='onsite', db_index=True)
     

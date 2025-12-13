@@ -34,6 +34,7 @@ class JobListCreateView(generics.ListCreateAPIView):
         location = self.request.query_params.get('location')
         job_type = self.request.query_params.get('job_type')
         work_mode = self.request.query_params.get('work_mode')
+        experience = self.request.query_params.get('experience')
         skills = self.request.query_params.get('skills')
         company = self.request.query_params.get('company')
         publisher_role = self.request.query_params.get('publisher_role')
@@ -84,6 +85,8 @@ class JobListCreateView(generics.ListCreateAPIView):
             queryset = queryset.filter(job_type=job_type)
         if work_mode:
             queryset = queryset.filter(work_mode=work_mode)
+        if experience:
+            queryset = queryset.filter(experience=experience)
         if skills:
             for skill in skills.split(','):
                 queryset = queryset.filter(requirements__icontains=skill.strip())

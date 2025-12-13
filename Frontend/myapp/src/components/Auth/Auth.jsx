@@ -14,6 +14,7 @@ export default function Auth() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userEmail, setUserEmail] = useState('');
   const [userName, setUserName] = useState('');
+  const [jobRole, setJobRole] = useState('');
 
   const handleLogout = () => {   
     setIsLoggedIn(false);
@@ -278,6 +279,8 @@ export default function Auth() {
           const data = await response.json();
           localStorage.setItem('token', data.access_token);
           setUserEmail(currentForm.email);
+          setUserName(`${data.first_name} ${data.last_name}`);
+          setJobRole(data.job_role);
           setIsLoggedIn(true);
         } else {
           const errorData = await response.json();
@@ -359,7 +362,7 @@ export default function Auth() {
   };
 
   if (isLoggedIn && currentView !== 'change') {
-    return <NewHome onLogout={handleLogout} onChangePassword={handleChangePassword} userEmail={userEmail} userName={userName} />;
+    return <NewHome onLogout={handleLogout} onChangePassword={handleChangePassword} userEmail={userEmail} userName={userName} jobRole={jobRole} />;
   }
 
   if (currentView === 'otp') {

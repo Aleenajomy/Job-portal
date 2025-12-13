@@ -12,7 +12,7 @@ class JobPostListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = JobPost
-        fields = ("id", "title", "salary", "company_name", "publisher_name", "publisher_email", "publisher_role", "job_type", "work_mode", "location", "requirements", "total_applicants", "created_at")
+        fields = ("id", "title", "salary", "experience", "company_name", "publisher_name", "publisher_email", "publisher_role", "job_type", "work_mode", "location", "requirements", "total_applicants", "created_at")
 
     def get_publisher_name(self, obj):
         return f"{obj.publisher.first_name} {obj.publisher.last_name}"
@@ -34,7 +34,7 @@ class JobPostDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = JobPost
         fields = (
-            "id", "title", "description", "requirements", "company_name", "location", "salary", "job_type", "work_mode",
+            "id", "title", "description", "requirements", "company_name", "location", "salary", "experience", "job_type", "work_mode",
             "publisher_name", "publisher_email", "publisher_role", "publisher_phone", "publisher_profile_img",
             "created_at", "updated_at", "is_active", "is_applied"
         )
@@ -45,6 +45,7 @@ class JobPostDetailSerializer(serializers.ModelSerializer):
             'requirements': {'required': False},
             'location': {'required': False},
             'salary': {'required': False},
+            'experience': {'required': False},
             'job_type': {'required': False},
             'work_mode': {'required': False},
         }
@@ -152,10 +153,11 @@ class MyApplicationSerializer(serializers.ModelSerializer):
     job_company = serializers.CharField(source='job.company_name', read_only=True)
     job_location = serializers.CharField(source='job.location', read_only=True)
     job_salary = serializers.CharField(source='job.salary', read_only=True)
+    job_experience = serializers.CharField(source='job.experience', read_only=True)
     
     class Meta:
         model = JobApplication
-        fields = ['id', 'job_title', 'job_company', 'job_location', 'job_salary', 'applied_at', 'cover_letter']
+        fields = ['id', 'job_title', 'job_company', 'job_location', 'job_salary', 'job_experience', 'applied_at', 'cover_letter']
 
 class ApplicationListSerializer(serializers.ModelSerializer):
     job = serializers.SerializerMethodField()

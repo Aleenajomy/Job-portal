@@ -84,6 +84,8 @@ class LoginAPI(APIView):
             'message': 'Login successful',
             'access_token': access_token,
             'user_id': user.id,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
             'job_role': user.job_role
         }, status=status.HTTP_200_OK)
 
