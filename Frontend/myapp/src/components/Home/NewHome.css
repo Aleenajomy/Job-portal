@@ -1,0 +1,173 @@
+.new-home-container {
+  min-height: 100vh;
+  background: #f3f2ef;
+}
+
+.new-home-header {
+  background: #fff;
+  padding: 0 24px;
+  height: 60px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+}
+
+.logo {
+  font-size: 24px;
+  font-weight: bold;
+  color: #0a66c2;
+}
+
+.nav-icons {
+  display: flex;
+  gap: 24px;
+}
+
+.nav-icon-btn {
+  background: none;
+  border: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px;
+  cursor: pointer;
+  color: #666;
+  font-size: 12px;
+  transition: color 0.2s;
+}
+
+.nav-icon-btn:hover {
+  color: #0a66c2;
+}
+
+.nav-icon-btn .icon {
+  font-size: 20px;
+}
+
+.header-right {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.header-btn {
+  background: #0a66c2;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 16px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+
+.header-btn:hover {
+  background: #004182;
+}
+
+.header-btn.logout {
+  background: #d92d20;
+}
+
+.header-btn.logout:hover {
+  background: #b91c1c;
+}
+
+.back-btn {
+  background: none;
+  border: none;
+  color: #0a66c2;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 8px;
+}
+
+.new-home-main {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.welcome-section {
+  background: white;
+  padding: 32px;
+  border-radius: 8px;
+  text-align: center;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+}
+
+.welcome-section h1 {
+  font-size: 32px;
+  color: #333;
+  margin-bottom: 8px;
+}
+
+.welcome-section p {
+  color: #666;
+  font-size: 16px;
+}
+
+.empty-body {
+  background: white;
+  min-height: 400px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+  font-size: 18px;
+}
+
+.change-password-main {
+  max-width: 500px;
+  margin: 40px auto;
+  padding: 0 24px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .new-home-header {
+    padding: 0 16px;
+    height: auto;
+    flex-direction: column;
+    gap: 16px;
+    padding: 16px;
+  }
+  
+  .header-left {
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  .nav-icons {
+    gap: 16px;
+  }
+  
+  .nav-icon-btn {
+    font-size: 11px;
+  }
+  
+  .nav-icon-btn .icon {
+    font-size: 18px;
+  }
+  
+  .welcome-section {
+    padding: 24px 16px;
+  }
+  
+  .welcome-section h1 {
+    font-size: 24px;
+  }
+}

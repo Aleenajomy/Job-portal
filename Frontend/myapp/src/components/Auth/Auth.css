@@ -152,6 +152,12 @@
   height: 350px;
 }
 
+.form-container.change-active {
+  background: #FFFDF9;
+  padding: 12px;
+  height: 400px;
+}
+
 .title {
   font-size: 20px;
   margin: 0 0 3px;
@@ -367,7 +373,7 @@
   background: transparent;
   border: none;
   color: #000;
-  font-size: 1.5rem;
+  font-size: 2.5rem;
   cursor: pointer;
   padding: 8px 12px;
 }

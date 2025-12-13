@@ -25,11 +25,9 @@ class RegisterSerializer(serializers.ModelSerializer):
         if User.objects.filter(email=data['email']).exists():
             raise serializers.ValidationError("Email already exists")
         
-        # Validate password strength
-        try:
-            validate_password(data['password'])
-        except ValidationError as e:
-            raise serializers.ValidationError({'password': e.messages})
+        # Only check minimum length
+        if len(data['password']) < 6:
+            raise serializers.ValidationError({'password': 'Password must be at least 6 characters long'})
         
         # Prevent path traversal in name fields
         for field in ['first_name', 'last_name']:
@@ -99,11 +97,9 @@ class ResetPasswordSerializer(serializers.Serializer):
         if data['new_password'] != data['confirm_password']:
             raise serializers.ValidationError("Passwords don't match")
         
-        # Validate password strength
-        try:
-            validate_password(data['new_password'])
-        except ValidationError as e:
-            raise serializers.ValidationError({'new_password': e.messages})
+        # Only check minimum length
+        if len(data['new_password']) < 6:
+            raise serializers.ValidationError({'new_password': 'Password must be at least 6 characters long'})
         
         return data
 
@@ -129,8 +125,7 @@ class ResendOTPSerializer(serializers.Serializer):
         return value
 
 class ChangePasswordSerializer(serializers.Serializer):
-    email = serializers.EmailField()
-    old_password = serializers.CharField(write_only=True)
+    current_password = serializers.CharField(write_only=True)
     new_password = serializers.CharField(write_only=True)
     confirm_password = serializers.CharField(write_only=True)
     
@@ -138,11 +133,9 @@ class ChangePasswordSerializer(serializers.Serializer):
         if data['new_password'] != data['confirm_password']:
             raise serializers.ValidationError("Passwords don't match")
         
-        # Validate password strength
-        try:
-            validate_password(data['new_password'])
-        except ValidationError as e:
-            raise serializers.ValidationError({'new_password': e.messages})
+        # Only check minimum length
+        if len(data['new_password']) < 6:
+            raise serializers.ValidationError({'new_password': 'Password must be at least 6 characters long'})
         
         return data
 

@@ -5,9 +5,20 @@ import SignUpForm from "./SignUp/SignUpForm";
 import ForgotPasswordForm from "./ForgotPassword/ForgotPasswordForm";
 import OTPVerification from "./OTPVerification/OTPVerification";
 import ResetPasswordForm from "./ResetPassword/ResetPasswordForm";
+import ChangePasswordForm from "./ChangePassword/ChangePasswordForm";
+
+import NewHome from "../Home/NewHome";
 
 export default function Auth() {
-  const [currentView, setCurrentView] = useState('login'); // 'login', 'signup', 'forgot', 'otp', 'reset'
+  const [currentView, setCurrentView] = useState('login'); // 'login', 'signup', 'forgot', 'otp', 'reset', 'change'
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userEmail, setUserEmail] = useState('');
+  const [userName, setUserName] = useState('');
+
+  const handleLogout = () => {   
+    setIsLoggedIn(false);
+    setCurrentView('login');   //"user out and redirects them to the login screen"
+  };
   const [otpEmail, setOtpEmail] = useState("");
   const [otpType, setOtpType] = useState(""); // "signup" or "forgot"
   
@@ -35,10 +46,17 @@ export default function Auth() {
     confirmPassword: "",
   });
 
+  const [changePasswordForm, setChangePasswordForm] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+
   const [showSignupPassword, setShowSignupPassword] = useState(false);
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [showResetPassword, setShowResetPassword] = useState(false);
-  const [errors, setErrors] = useState({});
+  const [showChangePassword, setShowChangePassword] = useState(false); //"booleans to toggle password visibility"
+  const [errors, setErrors] = useState({}); //"validation errors to show on the form"
 
   const handleSignupChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -60,15 +78,21 @@ export default function Auth() {
     setResetPasswordForm((p) => ({ ...p, [name]: value }));
   };
 
+  const handleChangePasswordChange = (e) => {
+    const { name, value } = e.target;
+    setChangePasswordForm((p) => ({ ...p, [name]: value }));
+  };
+
   const validate = () => {
     const errs = {};
-    const currentForm = currentView === 'forgot' ? forgotPasswordForm : currentView === 'signup' ? signupForm : currentView === 'reset' ? resetPasswordForm : loginForm;
+    const currentForm = currentView === 'forgot' ? forgotPasswordForm : currentView === 'signup' ? signupForm : currentView === 'reset' ? resetPasswordForm : currentView === 'change' ? changePasswordForm : loginForm;
     
     if (currentView === 'signup' && !currentForm.firstName?.trim()) errs.firstName = "First name is required";
-    if (currentView !== 'reset' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(currentForm.email)) errs.email = "Enter a valid email";
-    if (currentView === 'reset' && currentForm.newPassword.length < 6) errs.newPassword = "Password must be at least 6 characters";
-    if (currentView === 'reset' && currentForm.newPassword !== currentForm.confirmPassword) errs.confirmPassword = "Passwords do not match";
-    if (currentView !== 'forgot' && currentView !== 'reset' && currentForm.password.length < 6) errs.password = "Password must be at least 6 characters";
+    if (currentView !== 'reset' && currentView !== 'change' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(currentForm.email)) errs.email = "Enter a valid email";
+    if ((currentView === 'reset' || currentView === 'change') && currentForm.newPassword.length < 6) errs.newPassword = "Password must be at least 6 characters";
+    if ((currentView === 'reset' || currentView === 'change') && currentForm.newPassword !== currentForm.confirmPassword) errs.confirmPassword = "Passwords do not match";
+    if (currentView === 'change' && (!currentForm.currentPassword || currentForm.currentPassword.length < 6)) errs.currentPassword = "Current password is required";
+    if (currentView !== 'forgot' && currentView !== 'reset' && currentView !== 'change' && (!currentForm.password || currentForm.password.length < 6)) errs.password = "Password must be at least 6 characters";
     if (currentView === 'signup' && currentForm.password !== currentForm.confirm) errs.confirm = "Passwords do not match";
     if (currentView === 'signup' && !currentForm.job_role) errs.job_role = "Job role is required";
     if (currentView === 'signup' && !currentForm.agree) errs.agree = "You must agree to the terms";
@@ -81,7 +105,7 @@ export default function Auth() {
     e.preventDefault();
     if (!validate()) return;
     
-    const currentForm = currentView === 'forgot' ? forgotPasswordForm : currentView === 'signup' ? signupForm : currentView === 'reset' ? resetPasswordForm : loginForm;
+    const currentForm = currentView === 'forgot' ? forgotPasswordForm : currentView === 'signup' ? signupForm : currentView === 'reset' ? resetPasswordForm : currentView === 'change' ? changePasswordForm : loginForm;
     
     if (currentView === 'forgot') {
       try {
@@ -101,10 +125,19 @@ export default function Auth() {
           setCurrentView('otp');
         } else {
           const errorData = await response.json();
-          setErrors(errorData);
+          let errorMessage = 'Failed to send reset email. Please try again.';
+          if (errorData.message && typeof errorData.message === 'string') {
+            errorMessage = errorData.message;
+          } else if (errorData.detail) {
+            errorMessage = errorData.detail;
+          }
+          
+          alert(errorMessage);
+          setErrors({ general: errorMessage });
         }
       } catch (error) {
         console.error('Forgot password error:', error);
+        alert('Failed to send reset email. Please try again.');
         setErrors({ general: 'Failed to send reset email. Please try again.' });
       }
     } else if (currentView === 'signup') {
@@ -144,10 +177,20 @@ export default function Auth() {
         } else {
           const errorData = await response.json();
           console.log('Registration error:', errorData);
-          setErrors(errorData.message || errorData);
+          
+          let errorMessage = 'Registration failed. Please check your information.';
+          if (errorData.message && typeof errorData.message === 'string') {
+            errorMessage = errorData.message;
+          } else if (errorData.detail) {
+            errorMessage = errorData.detail;
+          }
+          
+          alert(errorMessage);
+          setErrors({ general: errorMessage });
         }
       } catch (error) {
         console.error('Registration error:', error);
+        alert('Registration failed. Please try again.');
         setErrors({ general: 'Registration failed. Please try again.' });
       }
     } else if (currentView === 'reset') {
@@ -173,7 +216,50 @@ export default function Auth() {
         }
       } catch (error) {
         console.error('Reset password error:', error);
+        alert('Password reset failed. Please try again.');
         setErrors({ general: 'Password reset failed. Please try again.' });
+      }
+    } else if (currentView === 'change') {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch('http://127.0.0.1:8000/accounts/change-password/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            current_password: currentForm.currentPassword,
+            new_password: currentForm.newPassword,
+            confirm_password: currentForm.confirmPassword
+          })
+        });
+        
+        if (response.ok) {
+          alert('Password changed successfully!');
+          setCurrentView('home');
+          setChangePasswordForm({
+            currentPassword: "",
+            newPassword: "",
+            confirmPassword: "",
+          });
+          setErrors({});
+        } else {
+          const errorData = await response.json();
+          let errorMessage = 'Password change failed. Please try again.';
+          if (errorData.message && typeof errorData.message === 'string') {
+            errorMessage = errorData.message;
+          } else if (errorData.detail) {
+            errorMessage = errorData.detail;
+          }
+          
+          alert(errorMessage);
+          setErrors({ general: errorMessage });
+        }
+      } catch (error) {
+        console.error('Change password error:', error);
+        alert('Password change failed. Please try again.');
+        setErrors({ general: 'Password change failed. Please try again.' });
       }
     } else {
       try {
@@ -190,15 +276,29 @@ export default function Auth() {
         
         if (response.ok) {
           const data = await response.json();
-          localStorage.setItem('token', data.token);
-          alert('Login successful!');
-          // Redirect to dashboard or main app
+          localStorage.setItem('token', data.access_token);
+          setUserEmail(currentForm.email);
+          setIsLoggedIn(true);
         } else {
           const errorData = await response.json();
-          setErrors(errorData);
+          let errorMessage = 'Invalid credentials. Please check your email and password.';
+          
+          if (errorData.detail) {
+            errorMessage = errorData.detail;
+          } else if (errorData.message) {
+            if (typeof errorData.message === 'string') {
+              errorMessage = errorData.message;
+            } else {
+              errorMessage = 'Invalid credentials. Please check your email and password.';
+            }
+          }
+          
+          alert(errorMessage);
+          setErrors({ general: errorMessage });
         }
       } catch (error) {
         console.error('Login error:', error);
+        alert('Login failed. Please try again.');
         setErrors({ general: 'Login failed. Please try again.' });
       }
     }
@@ -227,6 +327,7 @@ export default function Auth() {
       case 'forgot': return "Forgot Your Password?";
       case 'otp': return "Verify Your Email";
       case 'reset': return "Reset Your Password";
+      case 'change': return "Change Your Password";
       default: return "Welcome Back!";
     }
   };
@@ -237,6 +338,7 @@ export default function Auth() {
       case 'forgot': return "Enter your email address and we'll send you an OTP to reset your password.";
       case 'otp': return `We've sent a 6-digit code to ${otpEmail}`;
       case 'reset': return "Enter your new password below.";
+      case 'change': return "Enter your current password and choose a new one.";
       default: return "Login to your account to connect with professionals and explore opportunities.";
     }
   };
@@ -247,9 +349,18 @@ export default function Auth() {
       case 'forgot': return "/Forgot password-rafiki.png";
       case 'otp': return "/Enter OTP-rafiki.png";
       case 'reset': return "/Reset password-rafiki.png";
+      case 'change': return "/Reset password-rafiki.png";
       default: return "/Tablet-login-rafiki.png";
     }
   };
+
+  const handleChangePassword = () => {
+    setCurrentView('change');
+  };
+
+  if (isLoggedIn && currentView !== 'change') {
+    return <NewHome onLogout={handleLogout} onChangePassword={handleChangePassword} userEmail={userEmail} userName={userName} />;
+  }
 
   if (currentView === 'otp') {
     return (
@@ -275,13 +386,13 @@ export default function Auth() {
 
   return (
     <div className="auth-screen">
-      {(currentView === 'forgot' || currentView === 'reset') && (
+      {(currentView === 'forgot' || currentView === 'reset' || currentView === 'change') && (
         <button className="back-btn" onClick={() => setCurrentView('login')}>
           ←
         </button>
       )}
       
-      {(currentView !== 'forgot' && currentView !== 'reset') && (
+      {(currentView !== 'forgot' && currentView !== 'reset' && currentView !== 'change') && (
         <div className="logo-container">
           <h1 className="logo">Logo</h1>
         </div>
@@ -290,7 +401,7 @@ export default function Auth() {
       <div className="auth-container">
         <div className="card">
           
-          {(currentView !== 'forgot' && currentView !== 'reset') && (
+          {(currentView !== 'forgot' && currentView !== 'reset' && currentView !== 'change') && (
             <div className="tab-row">
               <button 
                 className={`tab ${currentView === 'login' ? "active-tab" : ""}`}
@@ -327,6 +438,15 @@ export default function Auth() {
                 handleChange={handleResetPasswordChange}
                 handleSubmit={handleSubmit}
               />
+            ) : currentView === 'change' ? (
+              <ChangePasswordForm
+                form={changePasswordForm}
+                errors={errors}
+                showPassword={showChangePassword}
+                setShowPassword={setShowChangePassword}
+                handleChange={handleChangePasswordChange}
+                handleSubmit={handleSubmit}
+              />
             ) : currentView === 'signup' ? (
               <SignUpForm 
                 form={signupForm}
@@ -348,7 +468,7 @@ export default function Auth() {
               />
             )}
 
-            {(currentView !== 'forgot' && currentView !== 'reset') && (
+            {(currentView !== 'forgot' && currentView !== 'reset' && currentView !== 'change') && (
               <>
                 <div className="or-line">Or {currentView === 'signup' ? "Sign Up" : "Login"} With</div>
                 <div className="social-row">

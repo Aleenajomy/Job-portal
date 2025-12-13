@@ -240,6 +240,8 @@ class ResendOTPAPI(APIView):
             }, status=status.HTTP_404_NOT_FOUND)
 
 class ChangePasswordAPI(APIView):
+    permission_classes = [IsAuthenticated]
+    
     def post(self, request):
         serializer = ChangePasswordSerializer(data=request.data)
         if not serializer.is_valid():
@@ -248,11 +250,27 @@ class ChangePasswordAPI(APIView):
             }, status=status.HTTP_400_BAD_REQUEST)
         
         try:
-            user = User.objects.get(email=serializer.validated_data['email'])
+            # Get user from JWT token
+            from rest_framework_simplejwt.tokens import UntypedToken
+            from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
             
-            if not user.check_password(serializer.validated_data['old_password']):
+            auth_header = request.headers.get('Authorization')
+            if not auth_header or not auth_header.startswith('Bearer '):
+                return Response({'message': 'Invalid token'}, status=status.HTTP_401_UNAUTHORIZED)
+            
+            token = auth_header.split(' ')[1]
+            try:
+                UntypedToken(token)
+                decoded = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+                user = User.objects.get(id=decoded.get('user_id'))
+            except (InvalidToken, TokenError, User.DoesNotExist):
+                return Response({'message': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+            except Exception:
+                return Response({'message': 'Invalid token'}, status=status.HTTP_401_UNAUTHORIZED)
+            
+            if not user.check_password(serializer.validated_data['current_password']):
                 return Response({
-                    'message': 'Incorrect old password'
+                    'message': 'Incorrect current password'
                 }, status=status.HTTP_400_BAD_REQUEST)
             
             try:
@@ -266,10 +284,10 @@ class ChangePasswordAPI(APIView):
             return Response({
                 'message': 'Password changed successfully'
             }, status=status.HTTP_200_OK)
-        except User.DoesNotExist:
+        except Exception as e:
             return Response({
-                'message': 'User not found'
-            }, status=status.HTTP_404_NOT_FOUND)
+                'message': 'An error occurred. Please try again.'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class UpdateJobRoleAPI(APIView):
     def patch(self, request):
