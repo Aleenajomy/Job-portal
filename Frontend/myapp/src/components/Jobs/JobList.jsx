@@ -59,9 +59,13 @@ const sampleJobs = [
   }
 ];
 
-export default function JobList({ onJobClick, onBack }) {
+export default function JobList({ onJobClick, onBack, userRole, onManageJobs }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
+  
+  // Check if user is logged in
+  const isLoggedIn = !!localStorage.getItem('token');
+  const canManageJobs = userRole === 'Employer' || userRole === 'Company';
 
   const filteredJobs = sampleJobs.filter(job => {
     const matchesSearch = job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -76,7 +80,19 @@ export default function JobList({ onJobClick, onBack }) {
         ←
       </button>
       <div className="jobs-header">
-        <h1>Available Jobs</h1>
+        <div className="header-content">
+          <h1>Available Jobs</h1>
+          {isLoggedIn && canManageJobs && (
+            <button className="manage-jobs-btn" onClick={onManageJobs}>
+              Manage My Jobs
+            </button>
+          )}
+        </div>
+        {!isLoggedIn && (
+          <div className="login-prompt">
+            <p>Please log in to apply for jobs or post new opportunities.</p>
+          </div>
+        )}
       </div>
 
       <div className="jobs-filters">
@@ -155,9 +171,14 @@ export default function JobList({ onJobClick, onBack }) {
               
               <p className="job-description">{job.description}</p>
               
-              <div className="job-actions">
+              {/* <div className="job-actions">
                 <button className="view-details-btn">View Details</button>
-              </div>
+                {isLoggedIn && userRole === 'Employee' && (
+                  <button className="quick-apply-btn">
+                    Quick Apply
+                  </button>
+                )}
+              </div> */}
             </div>
           ))
         ) : (

@@ -278,6 +278,9 @@ export default function Auth() {
         if (response.ok) {
           const data = await response.json();
           localStorage.setItem('token', data.access_token);
+          localStorage.setItem('userRole', data.job_role);
+          localStorage.setItem('userEmail', currentForm.email);
+          localStorage.setItem('userName', `${data.first_name} ${data.last_name}`);
           setUserEmail(currentForm.email);
           setUserName(`${data.first_name} ${data.last_name}`);
           setJobRole(data.job_role);

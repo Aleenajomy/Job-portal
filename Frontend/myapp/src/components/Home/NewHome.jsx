@@ -2,15 +2,19 @@ import { useState } from 'react';
 import './NewHome.css';
 import JobList from '../Jobs/JobList';
 import JobDetail from '../Jobs/JobDetail';
+import JobManagement from '../Jobs/JobManagement';
 
 
 export default function NewHome({ onLogout, onChangePassword, userEmail, userName, jobRole }) {
   const [showProfile, setShowProfile] = useState(false);
-  const [currentView, setCurrentView] = useState('home'); // 'home', 'jobs', 'jobDetail'
+  const [currentView, setCurrentView] = useState('home'); // 'home', 'jobs', 'jobDetail', 'management'
   const [selectedJob, setSelectedJob] = useState(null);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('userRole');
+    localStorage.removeItem('userEmail');
+    localStorage.removeItem('userName');
     onLogout();
   };
 
@@ -77,14 +81,19 @@ export default function NewHome({ onLogout, onChangePassword, userEmail, userNam
             setCurrentView('jobDetail');
           }}
           onBack={() => setCurrentView('home')}
+          userRole={jobRole}
+          onManageJobs={() => setCurrentView('management')}
         />
       ) : currentView === 'jobDetail' ? (
         <JobDetail 
           job={selectedJob}
           onBack={() => setCurrentView('jobs')}
-          onApply={(job) => {
-            alert(`Applied to ${job.title} at ${job.company}!`);
-          }}
+          userRole={jobRole}
+        />
+      ) : currentView === 'management' ? (
+        <JobManagement 
+          userRole={jobRole}
+          onBack={() => setCurrentView('jobs')}
         />
       ) : (
         <main className="new-home-main">
