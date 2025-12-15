@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import './Jobs.css';
 
 const sampleJobs = [
@@ -64,22 +64,14 @@ const sampleJobs = [
   }
 ];
 
-const JobDetail = ({ selectedJob, onBack, userRole }) => {
-  const [user, setUser] = useState(null);
+const JobDetail = ({ job, onBack, userRole }) => {
   const [applying, setApplying] = useState(false);
 
-  useEffect(() => {
-    const userData = localStorage.getItem('user');
-    if (userData) {
-      setUser(JSON.parse(userData));
-    }
-  }, []);
-
-  // Use selectedJob prop or find from sampleJobs if needed
-  const job = selectedJob || sampleJobs[0];
+  const isLoggedIn = !!localStorage.getItem('token');
+  const canApply = isLoggedIn && userRole === 'Employee';
 
   const handleApply = () => {
-    if (!user) {
+    if (!isLoggedIn) {
       alert('Please log in to apply for jobs');
       return;
     }
@@ -101,8 +93,9 @@ const JobDetail = ({ selectedJob, onBack, userRole }) => {
     fileInput.click();
   };
 
-  const canEdit = false;
-  const canApply = user && userRole === 'Employee';
+  const handleSaveJob = () => {
+    alert(`Job saved: ${job.title}`);
+  };
 
   if (!job) return <div className="job-detail-container">Job not found</div>;
 
@@ -129,11 +122,11 @@ const JobDetail = ({ selectedJob, onBack, userRole }) => {
             <div className="overview-grid">
               <div className="overview-item">
                 <span className="overview-label">Job Type</span>
-                <span className="overview-value">{job.job_type}</span>
+                <span className="overview-value">{job.job_type || job.jobType || 'Not specified'}</span>
               </div>
               <div className="overview-item">
                 <span className="overview-label">Work Mode</span>
-                <span className="overview-value">{job.work_mode}</span>
+                <span className="overview-value">{job.work_mode || job.workMode || 'Not specified'}</span>
               </div>
               <div className="overview-item">
                 <span className="overview-label">Location</span>
@@ -170,10 +163,10 @@ const JobDetail = ({ selectedJob, onBack, userRole }) => {
         </div>
 
         <div className="job-detail-sidebar">
-          {canApply && (
+          {canApply ? (
             <div className="apply-card">
-              <h3>Apply for this job</h3>
-              <p>Submit your resume to apply for this position.</p>
+              <h3>Ready to Apply?</h3>
+              <p>Join our team and take your career to the next level!</p>
               <button 
                 className="apply-btn"
                 onClick={handleApply}
@@ -183,10 +176,30 @@ const JobDetail = ({ selectedJob, onBack, userRole }) => {
               </button>
               <button 
                 className="save-btn"
-                onClick={() => alert('Job saved!')}
+                onClick={handleSaveJob}
               >
                 Save Job
               </button>
+            </div>
+          ) : (
+            <div className="apply-card">
+              {!isLoggedIn ? (
+                <>
+                  <h3>Want to Apply?</h3>
+                  <p>Please log in as an Employee to apply for this position.</p>
+                  <button className="login-required-btn" disabled>
+                    Login Required
+                  </button>
+                </>
+              ) : (
+                <>
+                  <h3>Job Posting</h3>
+                  <p>This is a job posting. Only employees can apply for positions.</p>
+                  <button className="not-applicable-btn" disabled>
+                    Application Not Available
+                  </button>
+                </>
+              )}
             </div>
           )}
 

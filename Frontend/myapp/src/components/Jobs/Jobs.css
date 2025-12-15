@@ -357,6 +357,10 @@
   font-weight: 600;
 }
 
+.overview-item .overview-value {
+  color: #333;
+}
+
 .overview-value.salary {
   color: #2d7d32;
   font-size: 18px;
@@ -820,6 +824,9 @@
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 12px;
   margin-bottom: 16px;
+}
+
+.posted-job-details .detail-item {
   color: #666;
 }
 
@@ -981,6 +988,7 @@
   .job-overview-card,
   .job-section-card {
     padding: 20px;
+    
   }
   
   .header-content,
