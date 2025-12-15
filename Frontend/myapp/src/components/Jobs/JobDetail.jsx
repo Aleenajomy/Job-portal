@@ -1,103 +1,119 @@
 import React, { useState } from 'react';
 import './Jobs.css';
+import { validateJobApplication, canApplyToJobs, USER_ROLES } from '../../utils/roleValidation';
+import { jobAPI } from '../../utils/api';
 
-const sampleJobs = [
-  {
-    id: 1,
-    title: "Senior React Developer",
-    company_name: "TechCorp Solutions",
-    job_type: "Full time",
-    experience: "3-5 years",
-    location: "San Francisco, CA",
-    salary: "$120,000 - $150,000",
-    description: "We are looking for an experienced React developer to join our dynamic team and build cutting-edge web applications.",
-    work_mode: "Remote",
-    requirements: ["React.js", "JavaScript", "HTML/CSS", "Node.js"]
-  },
-  {
-    id: 2,
-    title: "Python Backend Engineer",
-    company_name: "DataFlow Inc",
-    job_type: "Full time", 
-    experience: "2-4 years",
-    location: "New York, NY",
-    salary: "$100,000 - $130,000",
-    description: "Join our backend team to develop scalable APIs and microservices using Python and Django framework.",
-    work_mode: "Hybrid",
-    requirements: ["Python", "Django", "REST APIs", "PostgreSQL"]
-  },
-  {
-    id: 3,
-    title: "UI/UX Designer",
-    company_name: "Creative Studios",
-    job_type: "Part time",
-    experience: "1-3 years", 
-    location: "Los Angeles, CA",
-    salary: "$60,000 - $80,000",
-    description: "Create beautiful and intuitive user interfaces for web and mobile applications with modern design principles.",
-    work_mode: "On-site",
-    requirements: ["Figma", "Adobe Creative Suite", "Prototyping", "User Research"]
-  },
-  {
-    id: 4,
-    title: "DevOps Engineer",
-    company_name: "CloudTech Systems",
-    job_type: "Full time",
-    experience: "4-6 years",
-    location: "Seattle, WA", 
-    salary: "$130,000 - $160,000",
-    description: "Manage cloud infrastructure and CI/CD pipelines to ensure reliable and scalable application deployment.",
-    work_mode: "Remote",
-    requirements: ["AWS", "Docker", "Kubernetes", "Jenkins"]
-  },
-  {
-    id: 5,
-    title: "Marketing Intern",
-    company_name: "StartupHub",
-    job_type: "Intern",
-    experience: "Fresh graduate",
-    location: "Austin, TX",
-    salary: "$2,000/month",
-    description: "Learn digital marketing strategies and help execute campaigns for our growing startup ecosystem.",
-    work_mode: "Hybrid",
-    requirements: ["Social Media", "Content Creation", "Analytics", "Communication"]
-  }
-];
+
 
 const JobDetail = ({ job, onBack, userRole }) => {
   const [applying, setApplying] = useState(false);
+  const [fullJob, setFullJob] = useState(job);
+  const [loading, setLoading] = useState(false);
+
+  // Fetch full job details when component mounts
+  React.useEffect(() => {
+    const fetchJobDetails = async () => {
+      if (!job?.id) return;
+      
+      setLoading(true);
+      try {
+        const jobDetails = await jobAPI.getJob(job.id);
+        setFullJob(jobDetails);
+      } catch (error) {
+        console.error('Error fetching job details:', error);
+        setFullJob(job); // Fallback to original job data
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchJobDetails();
+  }, [job?.id]);
 
   const isLoggedIn = !!localStorage.getItem('token');
-  const canApply = isLoggedIn && userRole === 'Employee';
+  const currentUserId = parseInt(localStorage.getItem('userId') || localStorage.getItem('user_id')); // Get current user ID
+  
+  // Get user info from localStorage - try multiple possible keys
+  const userEmail = localStorage.getItem('email') || localStorage.getItem('user_email') || localStorage.getItem('userEmail');
+  const userName = localStorage.getItem('name') || localStorage.getItem('user_name') || localStorage.getItem('userName');
+  
+  // Show all localStorage keys for debugging
+  console.log('All localStorage keys:', Object.keys(localStorage));
+  console.log('All localStorage data:', {
+    token: localStorage.getItem('token'),
+    userId: localStorage.getItem('userId'),
+    user_id: localStorage.getItem('user_id'),
+    email: localStorage.getItem('email'),
+    user_email: localStorage.getItem('user_email'),
+    userEmail: localStorage.getItem('userEmail'),
+    name: localStorage.getItem('name'),
+    user_name: localStorage.getItem('user_name'),
+    userName: localStorage.getItem('userName')
+  });
+  
+  // Debug logging
+  console.log('Original job data:', job);
+  console.log('Full job data:', fullJob);
+  console.log('Job description:', fullJob?.description);
+  console.log('Job requirements:', fullJob?.requirements);
+  console.log('Current user ID:', currentUserId);
+  console.log('Current user email:', userEmail);
+  console.log('Job publisher:', job?.publisher);
+  console.log('Job publisher email:', job?.publisher_email);
+  console.log('User role:', userRole);
+  
+  // Check if user can apply: Employee OR Employer (but not to own jobs)
+  const canUserApply = (userRole === 'Employee' || userRole === 'Employer') && isLoggedIn;
+  
+  // Check ownership using multiple methods
+  const isOwnJobById = fullJob && fullJob.publisher && !isNaN(currentUserId) && (fullJob.publisher === currentUserId);
+  const isOwnJobByEmail = fullJob && fullJob.publisher_email && userEmail && (fullJob.publisher_email === userEmail);
+  const isOwnJob = isOwnJobById || isOwnJobByEmail;
+  
+  const canApply = canUserApply && !isOwnJob;
+  
+  console.log('Is own job (by ID):', isOwnJobById);
+  console.log('Is own job (by email):', isOwnJobByEmail);
+  console.log('Is own job (final):', isOwnJob);
+  console.log('Final can apply:', canApply);
 
   const handleApply = () => {
-    if (!isLoggedIn) {
-      alert('Please log in to apply for jobs');
+    if (!canApply) {
+      alert('You cannot apply to this job');
       return;
     }
 
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
     fileInput.accept = '.pdf,.doc,.docx';
-    fileInput.onchange = (e) => {
+    fileInput.onchange = async (e) => {
       const file = e.target.files[0];
       if (!file) return;
       
       setApplying(true);
-      // Simulate application submission
-      setTimeout(() => {
+      
+      const formData = new FormData();
+      formData.append('resume', file);
+      formData.append('cover_letter', '');
+      
+      try {
+        await jobAPI.applyToJob(fullJob.id, formData);
         alert('Application submitted successfully!');
+      } catch (error) {
+        alert(error.message || 'Error submitting application');
+      } finally {
         setApplying(false);
-      }, 1000);
+      }
     };
     fileInput.click();
   };
 
   const handleSaveJob = () => {
-    alert(`Job saved: ${job.title}`);
+    alert(`Job saved: ${fullJob.title}`);
   };
 
   if (!job) return <div className="job-detail-container">Job not found</div>;
+  if (loading) return <div className="job-detail-container">Loading job details...</div>;
 
   return (
     <div className="job-detail-container">
@@ -107,9 +123,9 @@ const JobDetail = ({ job, onBack, userRole }) => {
       
       <div className="job-detail-header">
         <div className="job-detail-title-section">
-          <h1 className="job-detail-title">{job.title}</h1>
+          <h1 className="job-detail-title">{fullJob.title}</h1>
           <div className="job-detail-company">
-            <span className="company-name">{job.company_name}</span>
+            <span className="company-name">{fullJob.company_name}</span>
           </div>
         </div>
 
@@ -122,23 +138,23 @@ const JobDetail = ({ job, onBack, userRole }) => {
             <div className="overview-grid">
               <div className="overview-item">
                 <span className="overview-label">Job Type</span>
-                <span className="overview-value">{job.job_type || job.jobType || 'Not specified'}</span>
+                <span className="overview-value">{fullJob.job_type || fullJob.jobType || 'Not specified'}</span>
               </div>
               <div className="overview-item">
                 <span className="overview-label">Work Mode</span>
-                <span className="overview-value">{job.work_mode || job.workMode || 'Not specified'}</span>
+                <span className="overview-value">{fullJob.work_mode || fullJob.workMode || 'Not specified'}</span>
               </div>
               <div className="overview-item">
                 <span className="overview-label">Location</span>
-                <span className="overview-value">{job.location || 'Not specified'}</span>
+                <span className="overview-value">{fullJob.location || 'Not specified'}</span>
               </div>
               <div className="overview-item">
                 <span className="overview-label">Experience</span>
-                <span className="overview-value">{job.experience || 'Not specified'}</span>
+                <span className="overview-value">{fullJob.experience || 'Not specified'}</span>
               </div>
               <div className="overview-item">
                 <span className="overview-label">Salary</span>
-                <span className="overview-value salary">{job.salary || 'Not disclosed'}</span>
+                <span className="overview-value salary">{fullJob.salary || 'Not disclosed'}</span>
               </div>
             </div>
           </div>
@@ -146,18 +162,28 @@ const JobDetail = ({ job, onBack, userRole }) => {
           <div className="job-section-card">
             <h2>Job Description</h2>
             <div className="job-full-description">
-              {job.description}
+              {fullJob.description ? (
+                <div>{fullJob.description}</div>
+              ) : (
+                <div>No description available</div>
+              )}
             </div>
           </div>
 
-          {job.requirements && job.requirements.length > 0 && (
+          {fullJob.requirements && fullJob.requirements.trim() && (
             <div className="job-section-card">
               <h2>Requirements</h2>
-              <ul className="job-list">
-                {job.requirements.map((req, index) => (
-                  <li key={index}>{req}</li>
-                ))}
-              </ul>
+              <div className="job-full-description">
+                {Array.isArray(fullJob.requirements) ? (
+                  <ul className="job-list">
+                    {fullJob.requirements.map((req, index) => (
+                      <li key={index}>{req}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div>{fullJob.requirements}</div>
+                )}
+              </div>
             </div>
           )}
         </div>
@@ -186,15 +212,31 @@ const JobDetail = ({ job, onBack, userRole }) => {
               {!isLoggedIn ? (
                 <>
                   <h3>Want to Apply?</h3>
-                  <p>Please log in as an Employee to apply for this position.</p>
+                  <p>Please log in as an Employee or Employer to apply for this position.</p>
                   <button className="login-required-btn" disabled>
                     Login Required
                   </button>
                 </>
+              ) : userRole === 'Company' ? (
+                <>
+                  <h3>Company Account</h3>
+                  <p>Companies cannot apply for jobs. You can only post jobs and view applicants.</p>
+                  <button className="not-applicable-btn" disabled>
+                    Application Not Available
+                  </button>
+                </>
+              ) : isOwnJob ? (
+                <>
+                  <h3>Your Job Posting</h3>
+                  <p>You cannot apply to your own job posting.</p>
+                  <button className="not-applicable-btn" disabled>
+                    Cannot Apply to Own Job
+                  </button>
+                </>
               ) : (
                 <>
-                  <h3>Job Posting</h3>
-                  <p>This is a job posting. Only employees can apply for positions.</p>
+                  <h3>Access Restricted</h3>
+                  <p>Only Employees and Employers can apply for jobs.</p>
                   <button className="not-applicable-btn" disabled>
                     Application Not Available
                   </button>
@@ -220,7 +262,7 @@ const JobDetail = ({ job, onBack, userRole }) => {
               </div>
             </div> */}
             <div className="company-description">
-              {job.company_name} is a leading company in the industry, committed to innovation and excellence.
+              {job.company_name || 'Company'} is a leading company in the industry, committed to innovation and excellence.
             </div>
           </div>
         </div>

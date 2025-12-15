@@ -12,6 +12,7 @@ from .models import JobPost
 from .serializers import JobPostListSerializer, JobPostDetailSerializer, JobApplicationSerializer, ApplicationListSerializer, ApplicantSerializer
 from .permissions import IsEmployerOrCompanyOrReadOnly, CanApplyToJob
 from .models import JobPost, JobApplication
+from .validators import RoleValidator, JobAccessControl
 
 class JobListCreateView(generics.ListCreateAPIView):
     queryset = JobPost.objects.select_related("publisher").filter(is_active=True).order_by('-created_at')
@@ -109,10 +110,24 @@ class JobListCreateView(generics.ListCreateAPIView):
         return queryset
     
     def create(self, request, *args, **kwargs):
+        user_role = getattr(request.user, 'job_role', None)
+        
+        # Validate role-based job creation access
+        if user_role not in ('Employer', 'Company'):
+            return Response({
+                'error': 'ACCESS_DENIED',
+                'message': 'Only Employers and Companies can create job postings.',
+                'user_role': user_role
+            }, status=403)
+        
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
             self.perform_create(serializer)
-            return Response({'message': 'Job created successfully'}, status=status.HTTP_201_CREATED)
+            return Response({
+                'message': 'Job created successfully',
+                'job_id': serializer.instance.id,
+                'publisher_role': user_role
+            }, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def perform_create(self, serializer):
@@ -144,23 +159,55 @@ class JobApplicationView(generics.CreateAPIView):
     permission_classes = [IsAuthenticated, CanApplyToJob]
     
     def create(self, request, *args, **kwargs):
-        # Check if user is a company
         user_role = getattr(request.user, 'job_role', None)
+        
+        # Role-based validation: Only Employee & Employer can apply
         if user_role == 'Company':
-            return Response({'message': 'Companies cannot apply for jobs. You can only post jobs and view applicants.'}, status=403)
+            return Response({
+                'error': 'ACCESS_DENIED',
+                'message': 'Companies cannot apply for jobs. You can only post jobs and view applicants.',
+                'user_role': user_role
+            }, status=403)
+        
+        if user_role not in ('Employee', 'Employer'):
+            return Response({
+                'error': 'INVALID_ROLE',
+                'message': 'Only Employees and Employers can apply for jobs.',
+                'user_role': user_role
+            }, status=403)
         
         # Get job from URL parameter
         job_id = self.kwargs.get('job_id')
         try:
-            job = JobPost.objects.get(id=job_id)
-        except (JobPost.DoesNotExist, ValueError):
-            return Response({'message': 'Job not found'}, status=404)
-        except Exception:
-            return Response({'message': 'Error retrieving job'}, status=500)
+            job = JobPost.objects.get(id=job_id, is_active=True)
+        except JobPost.DoesNotExist:
+            return Response({
+                'error': 'JOB_NOT_FOUND',
+                'message': 'Job not found or no longer active'
+            }, status=404)
+        except ValueError:
+            return Response({
+                'error': 'INVALID_JOB_ID',
+                'message': 'Invalid job ID provided'
+            }, status=400)
         
         # Check if user is trying to apply to their own job
         if job.publisher == request.user:
-            return Response({'message': 'You cannot apply to your own job'}, status=403)
+            return Response({
+                'error': 'OWN_JOB_APPLICATION',
+                'message': 'You cannot apply to your own job posting',
+                'job_id': job_id,
+                'job_title': job.title
+            }, status=403)
+        
+        # Check if user already applied
+        if JobApplication.objects.filter(job=job, applicant=request.user).exists():
+            return Response({
+                'error': 'ALREADY_APPLIED',
+                'message': 'You have already applied to this job',
+                'job_id': job_id,
+                'job_title': job.title
+            }, status=400)
         
         # Add job to request data
         data = request.data.copy()
@@ -372,4 +419,15 @@ class ApplicationStatusStatsView(generics.GenericAPIView):
         }
         
         return Response(stats)
+
+class UserPermissionsView(generics.GenericAPIView):
+    """Get user permissions based on role for frontend validation"""
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request, *args, **kwargs):
+        permissions = JobAccessControl.get_user_permissions(request.user)
+        return Response({
+            'permissions': permissions,
+            'message': 'User permissions retrieved successfully'
+        })
 

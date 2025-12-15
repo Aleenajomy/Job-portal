@@ -12,7 +12,7 @@ class JobPostListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = JobPost
-        fields = ("id", "title", "salary", "experience", "company_name", "publisher_name", "publisher_email", "publisher_role", "job_type", "work_mode", "location", "requirements", "total_applicants", "created_at")
+        fields = ("id", "title", "salary", "experience", "company_name", "publisher", "publisher_name", "publisher_email", "publisher_role", "job_type", "work_mode", "location", "requirements", "total_applicants", "created_at")
 
     def get_publisher_name(self, obj):
         return f"{obj.publisher.first_name} {obj.publisher.last_name}"
@@ -35,7 +35,7 @@ class JobPostDetailSerializer(serializers.ModelSerializer):
         model = JobPost
         fields = (
             "id", "title", "description", "requirements", "company_name", "location", "salary", "experience", "job_type", "work_mode",
-            "publisher_name", "publisher_email", "publisher_role", "publisher_phone", "publisher_profile_img",
+            "publisher", "publisher_name", "publisher_email", "publisher_role", "publisher_phone", "publisher_profile_img",
             "created_at", "updated_at", "is_active", "is_applied"
         )
         read_only_fields = ("company_name", "publisher_name", "publisher_email", "publisher_role", "created_at", "updated_at")

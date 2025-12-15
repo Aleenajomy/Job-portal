@@ -1,76 +1,41 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import './Jobs.css';
+import { canCreateJobs } from '../../utils/roleValidation';
+import { jobAPI } from '../../utils/api';
 
-const sampleJobs = [
-  {
-    id: 1,
-    title: "Senior React Developer",
-    company: "TechCorp Solutions",
-    jobType: "Full time",
-    experience: "3-5 years",
-    location: "San Francisco, CA",
-    salary: "$120,000 - $150,000",
-    description: "We are looking for an experienced React developer to join our dynamic team and build cutting-edge web applications.",
-    workMode: "Remote"
-  },
-  {
-    id: 2,
-    title: "Python Backend Engineer",
-    company: "DataFlow Inc",
-    jobType: "Full time", 
-    experience: "2-4 years",
-    location: "New York, NY",
-    salary: "$100,000 - $130,000",
-    description: "Join our backend team to develop scalable APIs and microservices using Python and Django framework.",
-    workMode: "Hybrid"
-  },
-  {
-    id: 3,
-    title: "UI/UX Designer",
-    company: "Creative Studios",
-    jobType: "Part time",
-    experience: "1-3 years", 
-    location: "Los Angeles, CA",
-    salary: "$60,000 - $80,000",
-    description: "Create beautiful and intuitive user interfaces for web and mobile applications with modern design principles.",
-    workMode: "On-site"
-  },
-  {
-    id: 4,
-    title: "DevOps Engineer",
-    company: "CloudTech Systems",
-    jobType: "Full time",
-    experience: "4-6 years",
-    location: "Seattle, WA", 
-    salary: "$130,000 - $160,000",
-    description: "Manage cloud infrastructure and CI/CD pipelines to ensure reliable and scalable application deployment.",
-    workMode: "Remote"
-  },
-  {
-    id: 5,
-    title: "Marketing Intern",
-    company: "StartupHub",
-    jobType: "Intern",
-    experience: "Fresh graduate",
-    location: "Austin, TX",
-    salary: "$2,000/month",
-    description: "Learn digital marketing strategies and help execute campaigns for our growing startup ecosystem.",
-    workMode: "Hybrid"
-  }
-];
+
 
 export default function JobList({ onJobClick, onBack, userRole, onManageJobs }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
+  const [jobs, setJobs] = useState([]);
+  const [loading, setLoading] = useState(true);
   
-  // Check if user is logged in
+  // Check if user is logged in and can manage jobs
   const isLoggedIn = !!localStorage.getItem('token');
-  const canManageJobs = userRole === 'Employer' || userRole === 'Company';
+  const canManageJobs = isLoggedIn && canCreateJobs(userRole);
 
-  const filteredJobs = sampleJobs.filter(job => {
+  useEffect(() => {
+    fetchJobs();
+  }, []);
+
+  const fetchJobs = async () => {
+    try {
+      const data = await jobAPI.getJobs();
+      console.log('Fetched jobs:', data);
+      setJobs(Array.isArray(data) ? data : data.results || []);
+    } catch (error) {
+      console.error('Error fetching jobs:', error);
+      setJobs([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredJobs = jobs.filter(job => {
     const matchesSearch = job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         job.company.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesFilter = filterType === 'all' || job.jobType.toLowerCase().replace(' ', '') === filterType;
+                         (job.company_name && job.company_name.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesFilter = filterType === 'all' || job.job_type.toLowerCase().replace(' ', '') === filterType;
     return matchesSearch && matchesFilter;
   });
 
@@ -93,6 +58,7 @@ export default function JobList({ onJobClick, onBack, userRole, onManageJobs }) 
             <p>Please log in to apply for jobs or post new opportunities.</p>
           </div>
         )}
+
       </div>
 
       <div className="jobs-filters">
@@ -135,50 +101,43 @@ export default function JobList({ onJobClick, onBack, userRole, onManageJobs }) 
       </div>
 
       <div className="jobs-list">
-        {filteredJobs.length > 0 ? (
+        {loading ? (
+          <div className="loading">Loading jobs...</div>
+        ) : filteredJobs.length > 0 ? (
           filteredJobs.map(job => (
             <div key={job.id} className="job-card" onClick={() => onJobClick(job)}>
               <div className="job-header">
                 <h3 className="job-title">{job.title}</h3>
-                <span className={`job-type-badge ${job.jobType.toLowerCase().replace(' ', '')}`}>
-                  {job.jobType}
+                <span className={`job-type-badge ${job.job_type.toLowerCase().replace(' ', '')}`}>
+                  {job.job_type}
                 </span>
               </div>
               
               <div className="job-company">
                 <span className="company-icon">🏢</span>
-                {job.company}
+                {job.company_name || 'Company'}
               </div>
               
               <div className="job-details">
                 <div className="job-detail-item">
                   <span className="detail-icon">💼</span>
-                  <span>{job.experience}</span>
+                  <span>{job.experience || 'Not specified'}</span>
                 </div>
                 <div className="job-detail-item">
                   <span className="detail-icon">📍</span>
-                  <span>{job.location}</span>
+                  <span>{job.location || 'Not specified'}</span>
                 </div>
                 <div className="job-detail-item">
                   <span className="detail-icon">💰</span>
-                  <span>{job.salary}</span>
+                  <span>{job.salary || 'Not disclosed'}</span>
                 </div>
                 <div className="job-detail-item">
                   <span className="detail-icon">🌐</span>
-                  <span>{job.workMode}</span>
+                  <span>{job.work_mode}</span>
                 </div>
               </div>
               
               <p className="job-description">{job.description}</p>
-              
-              {/* <div className="job-actions">
-                <button className="view-details-btn">View Details</button>
-                {isLoggedIn && userRole === 'Employee' && (
-                  <button className="quick-apply-btn">
-                    Quick Apply
-                  </button>
-                )}
-              </div> */}
             </div>
           ))
         ) : (

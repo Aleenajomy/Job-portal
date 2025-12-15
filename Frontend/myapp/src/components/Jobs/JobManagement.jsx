@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import './Jobs.css';
+import { jobAPI } from '../../utils/api';
 
 export default function JobManagement({ userRole, onBack }) {
   const [jobs, setJobs] = useState([]);
@@ -16,39 +17,31 @@ export default function JobManagement({ userRole, onBack }) {
     work_mode: 'onsite'
   });
 
-  // Sample jobs for demonstration - replace with API call
   useEffect(() => {
-    // This would be replaced with actual API call to fetch user's posted jobs
-    const sampleUserJobs = [
-      {
-        id: 1,
-        title: "Senior React Developer",
-        description: "We are looking for an experienced React developer...",
-        location: "San Francisco, CA",
-        salary: "$120,000 - $150,000",
-        experience: "3-5 years",
-        job_type: "fulltime",
-        work_mode: "remote",
-        created_at: "2024-01-15",
-        applications_count: 12,
-        is_active: true
-      },
-      {
-        id: 2,
-        title: "Python Backend Engineer",
-        description: "Join our backend team to develop scalable APIs...",
-        location: "New York, NY",
-        salary: "$100,000 - $130,000",
-        experience: "2-4 years",
-        job_type: "fulltime",
-        work_mode: "hybrid",
-        created_at: "2024-01-10",
-        applications_count: 8,
-        is_active: true
-      }
-    ];
-    setJobs(sampleUserJobs);
+    fetchJobs();
   }, []);
+
+  const fetchJobs = async () => {
+    try {
+      const response = await fetch('http://127.0.0.1:8000/api/my-posted-jobs/', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      
+      if (!response.ok) {
+        console.error('API Error:', response.status, response.statusText);
+        setJobs([]);
+        return;
+      }
+      
+      const data = await response.json();
+      setJobs(Array.isArray(data) ? data : data.results || []);
+    } catch (error) {
+      console.error('Error fetching jobs:', error);
+      setJobs([]);
+    }
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -58,39 +51,19 @@ export default function JobManagement({ userRole, onBack }) {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (editingJob) {
-      // Update existing job
-      setJobs(prev => prev.map(job => 
-        job.id === editingJob.id 
-          ? { ...job, ...formData, updated_at: new Date().toISOString().split('T')[0] }
-          : job
-      ));
-      setEditingJob(null);
-    } else {
-      // Create new job
-      const newJob = {
-        id: Date.now(),
-        ...formData,
-        created_at: new Date().toISOString().split('T')[0],
-        applications_count: 0,
-        is_active: true
-      };
-      setJobs(prev => [newJob, ...prev]);
+    try {
+      if (editingJob) {
+        await jobAPI.updateJob(editingJob.id, formData);
+      } else {
+        await jobAPI.createJob(formData);
+      }
+      fetchJobs(); // Refresh job list
+      resetForm();
+    } catch (error) {
+      alert(error.message || 'Failed to save job');
     }
-    
-    setFormData({
-      title: '',
-      description: '',
-      requirements: '',
-      location: '',
-      salary: '',
-      experience: '',
-      job_type: 'fulltime',
-      work_mode: 'onsite'
-    });
-    setShowCreateForm(false);
   };
 
   const handleEdit = (job) => {
@@ -108,9 +81,14 @@ export default function JobManagement({ userRole, onBack }) {
     setShowCreateForm(true);
   };
 
-  const handleDelete = (jobId) => {
+  const handleDelete = async (jobId) => {
     if (window.confirm('Are you sure you want to delete this job posting?')) {
-      setJobs(prev => prev.filter(job => job.id !== jobId));
+      try {
+        await jobAPI.deleteJob(jobId);
+        fetchJobs();
+      } catch (error) {
+        alert(error.message || 'Failed to delete job');
+      }
     }
   };
 
@@ -295,7 +273,7 @@ export default function JobManagement({ userRole, onBack }) {
           <p>Active Jobs</p>
         </div>
         <div className="stat-card">
-          <h3>{jobs.reduce((sum, job) => sum + job.applications_count, 0)}</h3>
+          <h3>{jobs.reduce((sum, job) => sum + (job.applications_count || job.total_applicants || 0), 0)}</h3>
           <p>Total Applications</p>
         </div>
       </div>
