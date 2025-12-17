@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import "./Auth.css";
 import LoginForm from "./Login/LoginForm";
 import SignUpForm from "./SignUp/SignUpForm";
@@ -16,9 +16,25 @@ export default function Auth() {
   const [userName, setUserName] = useState('');
   const [jobRole, setJobRole] = useState('');
 
-  const handleLogout = () => {   
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      setIsLoggedIn(true);
+      setUserEmail(localStorage.getItem('userEmail') || '');
+      setUserName(localStorage.getItem('userName') || '');
+      setJobRole(localStorage.getItem('userRole') || '');
+    }
+  }, []);
+
+  const handleLogout = () => {
+    // Clear all user data from localStorage
+    localStorage.removeItem('token');
+    localStorage.removeItem('userRole');
+    localStorage.removeItem('userEmail');
+    localStorage.removeItem('userName');
+    localStorage.removeItem('userId');
     setIsLoggedIn(false);
-    setCurrentView('login');   //"user out and redirects them to the login screen"
+    setCurrentView('login');
   };
   const [otpEmail, setOtpEmail] = useState("");
   const [otpType, setOtpType] = useState(""); // "signup" or "forgot"
@@ -110,7 +126,7 @@ export default function Auth() {
     
     if (currentView === 'forgot') {
       try {
-        const response = await fetch('http://127.0.0.1:8000/accounts/forgot-password/', {
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/accounts/forgot-password/`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -137,22 +153,14 @@ export default function Auth() {
           setErrors({ general: errorMessage });
         }
       } catch (error) {
-        console.error('Forgot password error:', error);
         alert('Failed to send reset email. Please try again.');
         setErrors({ general: 'Failed to send reset email. Please try again.' });
       }
     } else if (currentView === 'signup') {
       try {
-        console.log('Sending registration data:', {
-          first_name: currentForm.firstName,
-          last_name: currentForm.lastName,
-          email: currentForm.email,
-          password: currentForm.password,
-          confirm_password: currentForm.confirm,
-          job_role: currentForm.job_role
-        });
+
         
-        const response = await fetch('http://127.0.0.1:8000/accounts/register/', {
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/accounts/register/`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -167,17 +175,13 @@ export default function Auth() {
           })
         });
         
-        console.log('Response status:', response.status);
-        
         if (response.ok) {
           const data = await response.json();
-          console.log('Registration successful:', data);
           setOtpEmail(currentForm.email);
           setOtpType("signup");
           setCurrentView('otp');
         } else {
           const errorData = await response.json();
-          console.log('Registration error:', errorData);
           
           let errorMessage = 'Registration failed. Please check your information.';
           if (errorData.message && typeof errorData.message === 'string') {
@@ -190,13 +194,12 @@ export default function Auth() {
           setErrors({ general: errorMessage });
         }
       } catch (error) {
-        console.error('Registration error:', error);
         alert('Registration failed. Please try again.');
         setErrors({ general: 'Registration failed. Please try again.' });
       }
     } else if (currentView === 'reset') {
       try {
-        const response = await fetch('http://127.0.0.1:8000/accounts/reset-password/', {
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/accounts/reset-password/`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -216,14 +219,13 @@ export default function Auth() {
           setErrors(errorData.message || errorData);
         }
       } catch (error) {
-        console.error('Reset password error:', error);
         alert('Password reset failed. Please try again.');
         setErrors({ general: 'Password reset failed. Please try again.' });
       }
     } else if (currentView === 'change') {
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch('http://127.0.0.1:8000/accounts/change-password/', {
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/accounts/change-password/`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -258,13 +260,12 @@ export default function Auth() {
           setErrors({ general: errorMessage });
         }
       } catch (error) {
-        console.error('Change password error:', error);
         alert('Password change failed. Please try again.');
         setErrors({ general: 'Password change failed. Please try again.' });
       }
     } else {
       try {
-        const response = await fetch('http://127.0.0.1:8000/accounts/login/', {
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/accounts/login/`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -281,6 +282,10 @@ export default function Auth() {
           localStorage.setItem('userRole', data.job_role);
           localStorage.setItem('userEmail', currentForm.email);
           localStorage.setItem('userName', `${data.first_name} ${data.last_name}`);
+          // Store user ID for job ownership detection
+          if (data.user_id) {
+            localStorage.setItem('userId', data.user_id.toString());
+          }
           setUserEmail(currentForm.email);
           setUserName(`${data.first_name} ${data.last_name}`);
           setJobRole(data.job_role);
@@ -303,7 +308,6 @@ export default function Auth() {
           setErrors({ general: errorMessage });
         }
       } catch (error) {
-        console.error('Login error:', error);
         alert('Login failed. Please try again.');
         setErrors({ general: 'Login failed. Please try again.' });
       }

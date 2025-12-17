@@ -1,6 +1,9 @@
 from django.db import models
 from accounts.models import User
 
+def default_skills():
+    return []
+
 # Profile for Employee & Employer (shared)
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
@@ -12,7 +15,7 @@ class UserProfile(models.Model):
     bio = models.TextField(null=True, blank=True)
 
     # Employee/Employer specific fields
-    skills = models.JSONField(default=list, blank=True)  # Employee-specific
+    skills = models.JSONField(default=default_skills, blank=True)  # Employee-specific
     experience_years = models.IntegerField(null=True, blank=True)
     company_name = models.CharField(max_length=255, null=True, blank=True)  # Employer-specific
     

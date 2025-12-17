@@ -2,10 +2,11 @@ import { useState, useEffect } from 'react';
 import './Jobs.css';
 import { canCreateJobs } from '../../utils/roleValidation';
 import { jobAPI } from '../../utils/api';
+import { MdWork, MdAccessTime, MdSchool, MdCheckCircle, MdBusiness, MdLocationOn, MdAttachMoney, MdLanguage } from 'react-icons/md';
 
 
 
-export default function JobList({ onJobClick, onBack, userRole, onManageJobs }) {
+export default function JobList({ onJobClick, onBack, userRole, onManageJobs, onMyApplications, refreshTrigger }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [jobs, setJobs] = useState([]);
@@ -17,7 +18,7 @@ export default function JobList({ onJobClick, onBack, userRole, onManageJobs }) 
 
   useEffect(() => {
     fetchJobs();
-  }, []);
+  }, [refreshTrigger]);
 
   const fetchJobs = async () => {
     try {
@@ -36,7 +37,8 @@ export default function JobList({ onJobClick, onBack, userRole, onManageJobs }) 
     const matchesSearch = job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (job.company_name && job.company_name.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesFilter = filterType === 'all' || job.job_type.toLowerCase().replace(' ', '') === filterType;
-    return matchesSearch && matchesFilter;
+    const isActive = job.is_active !== false; // Only show active jobs
+    return matchesSearch && matchesFilter && isActive;
   });
 
   return (
@@ -47,11 +49,18 @@ export default function JobList({ onJobClick, onBack, userRole, onManageJobs }) 
       <div className="jobs-header">
         <div className="header-content">
           <h1>Available Jobs</h1>
-          {isLoggedIn && canManageJobs && (
-            <button className="manage-jobs-btn" onClick={onManageJobs}>
-              Manage My Jobs
-            </button>
-          )}
+          <div className="header-buttons">
+            {isLoggedIn && (userRole === 'Employee' || userRole === 'Employer') && (
+              <button className="my-applications-btn" onClick={onMyApplications}>
+                My Applications
+              </button>
+            )}
+            {isLoggedIn && canManageJobs && (
+              <button className="manage-jobs-btn" onClick={onManageJobs}>
+                Manage My Jobs
+              </button>
+            )}
+          </div>
         </div>
         {!isLoggedIn && (
           <div className="login-prompt">
@@ -77,24 +86,28 @@ export default function JobList({ onJobClick, onBack, userRole, onManageJobs }) 
             className={`filter-btn ${filterType === 'all' ? 'active' : ''}`}
             onClick={() => setFilterType('all')}
           >
+            {filterType === 'all' ? <MdCheckCircle size={16} /> : <MdWork size={16} />}
             All Jobs
           </button>
           <button 
             className={`filter-btn ${filterType === 'fulltime' ? 'active' : ''}`}
             onClick={() => setFilterType('fulltime')}
           >
+            {filterType === 'fulltime' ? <MdCheckCircle size={16} /> : <MdWork size={16} />}
             Full Time
           </button>
           <button 
             className={`filter-btn ${filterType === 'parttime' ? 'active' : ''}`}
             onClick={() => setFilterType('parttime')}
           >
+            {filterType === 'parttime' ? <MdCheckCircle size={16} /> : <MdAccessTime size={16} />}
             Part Time
           </button>
           <button 
             className={`filter-btn ${filterType === 'intern' ? 'active' : ''}`}
             onClick={() => setFilterType('intern')}
           >
+            {filterType === 'intern' ? <MdCheckCircle size={16} /> : <MdSchool size={16} />}
             Internship
           </button>
         </div>
@@ -114,30 +127,29 @@ export default function JobList({ onJobClick, onBack, userRole, onManageJobs }) 
               </div>
               
               <div className="job-company">
-                <span className="company-icon">🏢</span>
+                <MdBusiness className="company-icon" />
                 {job.company_name || 'Company'}
               </div>
               
               <div className="job-details">
                 <div className="job-detail-item">
-                  <span className="detail-icon">💼</span>
+                  <MdWork className="detail-icon" />
                   <span>{job.experience || 'Not specified'}</span>
                 </div>
                 <div className="job-detail-item">
-                  <span className="detail-icon">📍</span>
+                  <MdLocationOn className="detail-icon" />
                   <span>{job.location || 'Not specified'}</span>
                 </div>
                 <div className="job-detail-item">
-                  <span className="detail-icon">💰</span>
+                  <MdAttachMoney className="detail-icon" />
                   <span>{job.salary || 'Not disclosed'}</span>
                 </div>
                 <div className="job-detail-item">
-                  <span className="detail-icon">🌐</span>
+                  <MdLanguage className="detail-icon" />
                   <span>{job.work_mode}</span>
                 </div>
               </div>
-              
-              <p className="job-description">{job.description}</p>
+              <p className="job-description">{job.description || 'No description available'}</p>
             </div>
           ))
         ) : (

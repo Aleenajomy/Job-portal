@@ -1,11 +1,18 @@
 import { useState, useEffect } from 'react';
 import './Jobs.css';
+import './JobManagement.css';
 import { jobAPI } from '../../utils/api';
+import ViewApplications from './ViewApplications';
+import ApplicantDetail from './ApplicantDetail';
+import { MdDeleteOutline, MdToggleOn, MdToggleOff, MdLocationOn, MdWork, MdAttachMoney, MdLanguage } from "react-icons/md";
+import { CiEdit } from "react-icons/ci";
 
-export default function JobManagement({ userRole, onBack }) {
-  const [jobs, setJobs] = useState([]);
+export default function JobManagement({ userRole, onBack, jobs, setJobs }) {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingJob, setEditingJob] = useState(null);
+  const [viewingApplications, setViewingApplications] = useState(null);
+  const [viewingApplicant, setViewingApplicant] = useState(null);
+  const [selectedJob, setSelectedJob] = useState(null);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -23,22 +30,21 @@ export default function JobManagement({ userRole, onBack }) {
 
   const fetchJobs = async () => {
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/my-posted-jobs/', {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/my-posted-jobs/`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       });
       
       if (!response.ok) {
-        console.error('API Error:', response.status, response.statusText);
         setJobs([]);
         return;
       }
       
       const data = await response.json();
-      setJobs(Array.isArray(data) ? data : data.results || []);
+      const jobsArray = Array.isArray(data) ? data : data.results || [];
+      setJobs(jobsArray);
     } catch (error) {
-      console.error('Error fetching jobs:', error);
       setJobs([]);
     }
   };
@@ -53,16 +59,43 @@ export default function JobManagement({ userRole, onBack }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Check if user is authenticated
+    const token = localStorage.getItem('token');
+    const userRole = localStorage.getItem('userRole');
+    
+    if (!token) {
+      alert('Please login to continue');
+      window.location.reload();
+      return;
+    }
+    
+    if (!userRole || (userRole !== 'Employer' && userRole !== 'Company')) {
+      alert('Access denied. Only Employers and Companies can create jobs.');
+      return;
+    }
+    
     try {
       if (editingJob) {
-        await jobAPI.updateJob(editingJob.id, formData);
+        // Don't send is_active in regular updates to prevent accidental changes
+      const { is_active, ...updateData } = formData;
+      await jobAPI.updateJob(editingJob.id, updateData);
+        alert('Job updated successfully!');
       } else {
         await jobAPI.createJob(formData);
+        alert('Job created successfully!');
       }
       fetchJobs(); // Refresh job list
       resetForm();
     } catch (error) {
-      alert(error.message || 'Failed to save job');
+      console.error('Job submission error:', error);
+      if (error.message.includes('Session expired') || error.message.includes('Authentication required')) {
+        alert('Your session has expired. Please login again.');
+        localStorage.clear();
+        window.location.reload();
+      } else {
+        alert(error.message || 'Failed to save job');
+      }
     }
   };
 
@@ -92,12 +125,32 @@ export default function JobManagement({ userRole, onBack }) {
     }
   };
 
-  const toggleJobStatus = (jobId) => {
-    setJobs(prev => prev.map(job => 
-      job.id === jobId 
-        ? { ...job, is_active: !job.is_active }
-        : job
-    ));
+  const toggleJobStatus = async (jobId) => {
+    try {
+      const job = jobs.find(j => j.id === jobId);
+      const newStatus = !job.is_active;
+      const endpoint = newStatus ? 'activate' : 'deactivate';
+      
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/jobs/${jobId}/${endpoint}/`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to update job status');
+      }
+      
+      setJobs(prev => prev.map(job => 
+        job.id === jobId 
+          ? { ...job, is_active: newStatus }
+          : job
+      ));
+    } catch (error) {
+      alert(error.message || 'Failed to update job status');
+    }
   };
 
   const resetForm = () => {
@@ -114,6 +167,26 @@ export default function JobManagement({ userRole, onBack }) {
     setEditingJob(null);
     setShowCreateForm(false);
   };
+
+  if (viewingApplicant) {
+    return (
+      <ApplicantDetail 
+        applicationId={viewingApplicant}
+        onBack={() => setViewingApplicant(null)}
+      />
+    );
+  }
+
+  if (viewingApplications) {
+    return (
+      <ViewApplications 
+        jobId={viewingApplications.id}
+        jobTitle={viewingApplications.title}
+        onBack={() => setViewingApplications(null)}
+        onViewApplicant={(applicationId) => setViewingApplicant(applicationId)}
+      />
+    );
+  }
 
   if (userRole === 'Employee') {
     return (
@@ -206,7 +279,7 @@ export default function JobManagement({ userRole, onBack }) {
 
               <div className="form-row">
                 <div className="form-group">
-                  <label>Experience Required</label>
+                  <label>Experience</label>
                   <input
                     type="text"
                     name="experience"
@@ -215,6 +288,9 @@ export default function JobManagement({ userRole, onBack }) {
                     placeholder="e.g. 2-4 years"
                   />
                 </div>
+              </div>
+
+              <div className="form-row">
                 <div className="form-group">
                   <label>Salary Range</label>
                   <input
@@ -273,88 +349,121 @@ export default function JobManagement({ userRole, onBack }) {
           <p>Active Jobs</p>
         </div>
         <div className="stat-card">
-          <h3>{jobs.reduce((sum, job) => sum + (job.applications_count || job.total_applicants || 0), 0)}</h3>
+          <h3>{jobs.reduce((sum, job) => sum + (job.application_count || 0), 0)}</h3>
           <p>Total Applications</p>
         </div>
       </div>
 
-      <div className="posted-jobs-list">
-        <h2>Your Posted Jobs</h2>
-        {jobs.length > 0 ? (
-          jobs.map(job => (
-            <div key={job.id} className={`posted-job-card ${!job.is_active ? 'inactive' : ''}`}>
-              <div className="posted-job-header">
-                <div className="job-title-section">
-                  <h3>{job.title}</h3>
+      <div className="jobs-layout">
+        <div className="jobs-list-panel">
+          {jobs.length > 0 ? (
+            jobs.map(job => (
+              <div 
+                key={job.id} 
+                className={`job-item ${selectedJob?.id === job.id ? 'selected' : ''} ${!job.is_active ? 'inactive' : ''}`}
+                onClick={() => setSelectedJob(job)}
+              >
+                <div className="item-header">
+                  <h4 className="item-title">{job.title}</h4>
                   <span className={`status-badge ${job.is_active ? 'active' : 'inactive'}`}>
-                    {job.is_active ? 'Active' : 'Inactive'}
+                    {job.is_active ? '✅' : '⏸️'}
                   </span>
                 </div>
-                <div className="job-actions">
-                  <button 
-                    className="edit-btn"
-                    onClick={() => handleEdit(job)}
-                  >
-                    Edit
+                <p className="item-company">{job.company_name}</p>
+                <div className="item-meta">
+                  <span><MdLocationOn /> {job.location}</span>
+                  <span className="item-date">{job.application_count || 0} applications</span>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="empty-list">
+              <div className="empty-icon">💼</div>
+              <p>No jobs posted yet</p>
+            </div>
+          )}
+        </div>
+
+        <div className="job-detail-panel">
+          {selectedJob ? (
+            <div className="detail-content">
+              <div className="detail-header">
+                <div className="detail-title-section">
+                  <h2>{selectedJob.title}</h2>
+                  <p className="detail-company">{selectedJob.company_name}</p>
+                </div>
+                <div className="detail-actions">
+                  <button className="edit-btn" onClick={() => handleEdit(selectedJob)}>
+                    <CiEdit />
                   </button>
-                  {/* <button 
-                    className={`toggle-btn ${job.is_active ? 'deactivate' : 'activate'}`}
-                    onClick={() => toggleJobStatus(job.id)}
-                  >
-                    {job.is_active ? 'Deactivate' : 'Activate'}
-                  </button> */}
                   <button 
-                    className="delete-btn"
-                    onClick={() => handleDelete(job.id)}
+                    className={`toggle-btn ${selectedJob.is_active ? 'deactivate' : 'activate'}`}
+                    onClick={() => toggleJobStatus(selectedJob.id)}
                   >
-                    Delete
+                    {selectedJob.is_active ? <MdToggleOff /> : <MdToggleOn />}
+                    {/* {selectedJob.is_active ? 'Deactivate' : 'Activate'} */}
+                  </button>
+                  <button className="delete-btn" onClick={() => handleDelete(selectedJob.id)}>
+                    <MdDeleteOutline /> 
                   </button>
                 </div>
               </div>
-              
-              <div className="posted-job-details">
-                <div className="detail-item">
-                  <span className="detail-icon">📍</span>
-                  <span>{job.location}</span>
-                </div>
-                <div className="detail-item">
-                  <span className="detail-icon">💼</span>
-                  <span>{job.experience}</span>
-                </div>
-                <div className="detail-item">
-                  <span className="detail-icon">💰</span>
-                  <span>{job.salary}</span>
-                </div>
-                <div className="detail-item">
-                  <span className="detail-icon">🌐</span>
-                  <span>{job.work_mode}</span>
+
+              <div className="detail-info">
+                <div className="info-grid">
+                  <div className="info-item">
+                    <MdLocationOn className="info-icon" />
+                    <span>Location: {selectedJob.location}</span>
+                  </div>
+                  <div className="info-item">
+                    <MdAttachMoney className="info-icon" />
+                    <span>Salary: {selectedJob.salary}</span>
+                  </div>
+                  <div className="info-item">
+                    <MdWork className="info-icon" />
+                    <span>Experience: {selectedJob.experience}</span>
+                  </div>
+                  <div className="info-item">
+                    <MdLanguage className="info-icon" />
+                    <span>Work Mode: {selectedJob.work_mode}</span>
+                  </div>
                 </div>
               </div>
-              
-              <p className="posted-job-description">{job.description}</p>
-              
-              <div className="posted-job-footer">
-                <div className="job-meta">
-                  <span>Posted: {job.created_at}</span>
-                  <span>{job.applications_count} applications</span>
+
+              <div className="detail-description">
+                <h3>Job Description</h3>
+                <p>{selectedJob.description}</p>
+              </div>
+
+              <div className="job-stats">
+                <h3>Job Statistics</h3>
+                <div className="stats-grid">
+                  <div className="stat-item">
+                    <span className="stat-number">{selectedJob.application_count || 0}</span>
+                    <span className="stat-label">Applications</span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="stat-number">{selectedJob.is_active ? 'Active' : 'Inactive'}</span>
+                    <span className="stat-label">Status</span>
+                  </div>
                 </div>
-                <button className="view-applications-btn">
-                  View Applications ({job.applications_count})
+                <button 
+                  className="view-applications-btn"
+                  onClick={() => setViewingApplications(selectedJob)}
+                >
+                  View All Applications ({selectedJob.application_count || 0})
                 </button>
               </div>
             </div>
-          ))
-        ) : (
-          <div className="no-jobs-posted">
-            <p>You haven't posted any jobs yet.</p>
-            <button 
-              className="create-first-job-btn"
-              onClick={() => setShowCreateForm(true)}
-            >
-              Post Your First Job
-            </button>
-          </div>
-        )}
+          ) : (
+            <div className="no-selection">
+              <div className="no-selection-content">
+                <h3>Select a Job</h3>
+                <p>Choose a job from the list to view details and manage applications</p>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

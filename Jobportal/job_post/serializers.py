@@ -1,27 +1,62 @@
 from rest_framework import serializers
 from .models import JobPost, JobApplication
-from .utils import get_applicant_name, convert_to_pdf, send_application_email
+from .utils import get_applicant_name, convert_to_pdf
 import os
 
 class JobPostListSerializer(serializers.ModelSerializer):
     publisher_name = serializers.SerializerMethodField()
     publisher_email = serializers.CharField(source="publisher.email", read_only=True)
     publisher_role = serializers.SerializerMethodField()
-    company_name = serializers.ReadOnlyField()
-    total_applicants = serializers.SerializerMethodField()
+    company_name = serializers.SerializerMethodField()
+    has_applied = serializers.SerializerMethodField()
 
     class Meta:
         model = JobPost
-        fields = ("id", "title", "salary", "experience", "company_name", "publisher", "publisher_name", "publisher_email", "publisher_role", "job_type", "work_mode", "location", "requirements", "total_applicants", "created_at")
+        fields = (
+            "id", "title", "description", "salary", "experience", "company_name", "publisher", 
+            "publisher_name", "publisher_email", "publisher_role", "job_type", 
+            "work_mode", "location", "requirements", "application_count", "created_at", "is_active", "has_applied"
+        )
 
     def get_publisher_name(self, obj):
-        return f"{obj.publisher.first_name} {obj.publisher.last_name}"
+        from django.utils.html import escape
+        first_name = escape(obj.publisher.first_name or '')
+        last_name = escape(obj.publisher.last_name or '')
+        return f"{first_name} {last_name}".strip()
     
     def get_publisher_role(self, obj):
-        return obj.publisher_role or getattr(obj.publisher, "job_role", None)
+        try:
+            return obj.publisher_role or getattr(obj.publisher, "job_role", None)
+        except AttributeError:
+            return None
     
-    def get_total_applicants(self, obj):
-        return obj.applications.count()
+    def get_company_name(self, obj):
+        # First try the stored company_name field
+        if obj.company_name:
+            return obj.company_name
+        
+        # For Company users - use first_name + last_name as company name
+        if obj.publisher.job_role == 'Company':
+            return f"{obj.publisher.first_name} {obj.publisher.last_name}".strip() or "Company Name"
+        
+        # For Employer users - try to get from user profile or use name
+        if obj.publisher.job_role == 'Employer':
+            try:
+                if hasattr(obj.publisher, 'userprofile') and obj.publisher.userprofile.company_name:
+                    return obj.publisher.userprofile.company_name
+            except:
+                pass
+            return f"{obj.publisher.first_name} {obj.publisher.last_name}".strip() or "Company Name"
+        
+        return "Company Name"
+    
+    def get_has_applied(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return JobApplication.objects.filter(job=obj, applicant=request.user).exists()
+        return False
+    
+
 
 class JobPostDetailSerializer(serializers.ModelSerializer):
     publisher_name = serializers.SerializerMethodField()
@@ -29,53 +64,94 @@ class JobPostDetailSerializer(serializers.ModelSerializer):
     publisher_role = serializers.SerializerMethodField()
     publisher_phone = serializers.SerializerMethodField()
     publisher_profile_img = serializers.SerializerMethodField()
-    company_name = serializers.ReadOnlyField()
+    company_name = serializers.SerializerMethodField()
+    has_applied = serializers.SerializerMethodField()
 
     class Meta:
         model = JobPost
         fields = (
             "id", "title", "description", "requirements", "company_name", "location", "salary", "experience", "job_type", "work_mode",
             "publisher", "publisher_name", "publisher_email", "publisher_role", "publisher_phone", "publisher_profile_img",
-            "created_at", "updated_at", "is_active", "is_applied"
+            "created_at", "updated_at", "is_active", "application_count", "has_applied"
         )
-        read_only_fields = ("company_name", "publisher_name", "publisher_email", "publisher_role", "created_at", "updated_at")
+        read_only_fields = ("publisher", "publisher_name", "publisher_email", "publisher_role", "created_at", "updated_at")
         extra_kwargs = {
-            'title': {'required': False},
-            'description': {'required': False},
+            # Job details - optional fields
             'requirements': {'required': False},
             'location': {'required': False},
             'salary': {'required': False},
             'experience': {'required': False},
+            'company_name': {'required': False},
+            # Job type and mode - optional fields
             'job_type': {'required': False},
             'work_mode': {'required': False},
         }
 
     def get_publisher_name(self, obj):
-        return f"{obj.publisher.first_name} {obj.publisher.last_name}"
+        from django.utils.html import escape
+        first_name = escape(obj.publisher.first_name or '')
+        last_name = escape(obj.publisher.last_name or '')
+        return f"{first_name} {last_name}".strip()
     
     def get_publisher_role(self, obj):
-        return obj.publisher_role or getattr(obj.publisher, "job_role", None)
+        try:
+            return obj.publisher_role or getattr(obj.publisher, "job_role", None)
+        except AttributeError:
+            return None
     
     def get_publisher_phone(self, obj):
         try:
             if obj.publisher.job_role == 'Company':
-                return obj.publisher.companyprofile.company_phone
+                if hasattr(obj.publisher, 'companyprofile'):
+                    return obj.publisher.companyprofile.company_phone
             else:
-                return obj.publisher.userprofile.phone
-        except:
-            return None
+                if hasattr(obj.publisher, 'userprofile'):
+                    return obj.publisher.userprofile.phone
+        except (AttributeError, Exception) as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error getting publisher phone for job {obj.id}: {str(e)}")
+        return None
+    
+    def get_company_name(self, obj):
+        # First try the stored company_name field
+        if obj.company_name:
+            return obj.company_name
+        
+        # For Company users - use first_name + last_name as company name
+        if obj.publisher.job_role == 'Company':
+            return f"{obj.publisher.first_name} {obj.publisher.last_name}".strip() or "Company Name"
+        
+        # For Employer users - try to get from user profile or use name
+        if obj.publisher.job_role == 'Employer':
+            try:
+                if hasattr(obj.publisher, 'userprofile') and obj.publisher.userprofile.company_name:
+                    return obj.publisher.userprofile.company_name
+            except:
+                pass
+            return f"{obj.publisher.first_name} {obj.publisher.last_name}".strip() or "Company Name"
+        
+        return "Company Name"
     
     def get_publisher_profile_img(self, obj):
         try:
             if obj.publisher.job_role == 'Company':
-                if obj.publisher.companyprofile.company_logo:
+                if hasattr(obj.publisher, 'companyprofile') and obj.publisher.companyprofile.company_logo:
                     return obj.publisher.companyprofile.company_logo.url
             else:
-                if obj.publisher.userprofile.profile_image:
+                if hasattr(obj.publisher, 'userprofile') and obj.publisher.userprofile.profile_image:
                     return obj.publisher.userprofile.profile_image.url
-        except:
-            pass
+        except (AttributeError, Exception) as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error getting publisher profile image for job {obj.id}: {str(e)}")
         return None
+    
+    def get_has_applied(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return JobApplication.objects.filter(job=obj, applicant=request.user).exists()
+        return False
     
     def update(self, instance, validated_data):
         # Only update fields that are provided
@@ -93,15 +169,30 @@ class JobApplicationSerializer(serializers.ModelSerializer):
         fields = ['job', 'resume', 'cover_letter', 'applicant_name', 'applicant_email', 'applied_at']
         read_only_fields = ['applicant_name', 'applicant_email', 'applied_at']
     
+    def _is_safe_filename(self, filename):
+        """Check if filename is safe from path traversal and invalid characters"""
+        import re
+        return not (
+            re.search(r'[.]{2,}', filename) or
+            '/' in filename or '\\' in filename or
+            filename.startswith('.') or
+            any(char in filename for char in ['<', '>', ':', '"', '|', '?', '*']) or
+            filename.lower() in ['con', 'prn', 'aux', 'nul'] or
+            re.match(r'^(com|lpt)[0-9]$', filename.lower())
+        )
+    
     def validate_resume(self, value):
         """Validate resume file type"""
         allowed_extensions = ['.pdf', '.doc', '.docx']
-        file_extension = os.path.splitext(value.name)[1].lower()
+        filename = os.path.basename(value.name)
         
+        if not self._is_safe_filename(filename):
+            raise serializers.ValidationError("Invalid filename")
+        
+        file_extension = os.path.splitext(filename)[1].lower()
         if file_extension not in allowed_extensions:
             raise serializers.ValidationError("Resume must be PDF, DOC, or DOCX format")
         
-        # Check file size (max 5MB)
         if value.size > 5 * 1024 * 1024:
             raise serializers.ValidationError("Resume file size must be less than 5MB")
         
@@ -133,18 +224,21 @@ class JobApplicationSerializer(serializers.ModelSerializer):
         # Create application
         application = JobApplication.objects.create(**validated_data)
         
-        # Convert resume to PDF if needed
-        pdf_resume = convert_to_pdf(application.resume)
-        if pdf_resume != application.resume:
-            application.resume_pdf = pdf_resume
-            application.save()
+        # Increment job application count
+        application.job.increment_application_count()
         
-        # Send email notification
+        # Convert resume to PDF if needed
         try:
-            send_application_email(application)
+            pdf_resume = convert_to_pdf(application.resume)
+            if pdf_resume != application.resume:
+                application.resume_pdf = pdf_resume
+                application.save()
         except Exception as e:
-            # Log error but don't fail the application
-            pass
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Failed to convert resume to PDF: {str(e)}")
+        
+        # Email notification removed as per requirement
         
         return application
 
@@ -171,7 +265,12 @@ class ApplicationListSerializer(serializers.ModelSerializer):
         return {
             'id': obj.job.id,
             'title': obj.job.title,
-            'company_name': obj.job.company_name
+            'company_name': obj.job.get_company_name(),
+            'location': obj.job.location,
+            'salary': obj.job.salary,
+            'experience': obj.job.experience,
+            'job_type': obj.job.job_type,
+            'work_mode': obj.job.work_mode
         }
     
     def get_resume_url(self, obj):
@@ -196,4 +295,7 @@ class ApplicantSerializer(serializers.ModelSerializer):
         fields = ['id', 'applicant_name', 'applicant_email', 'status', 'resume_url', 'cover_letter', 'applied_at']
     
     def get_resume_url(self, obj):
-        return obj.resume.url if obj.resume else None
+        try:
+            return obj.resume.url if obj.resume else None
+        except (AttributeError, ValueError):
+            return None

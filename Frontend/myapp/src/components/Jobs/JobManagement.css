@@ -1,0 +1,166 @@
+/* Job Management 2-Panel Layout */
+.jobs-layout {
+  display: grid;
+  grid-template-columns: 400px 1fr;
+  gap: 24px;
+  margin-left: 60px;
+  height: calc(100vh - 200px);
+  overflow: hidden;
+}
+
+.jobs-list-panel {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  overflow-y: auto;
+  border: 1px solid #e0e0e0;
+}
+
+.job-item {
+  padding: 20px;
+  border-bottom: 1px solid #f0f0f0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.job-item:hover {
+  background: #f8f9fa;
+}
+
+.job-item.selected {
+  background: #e3f2fd;
+  border-left: 4px solid #0a66c2;
+}
+
+.job-item.inactive {
+  opacity: 0.6;
+}
+
+.job-detail-panel {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  border: 1px solid #e0e0e0;
+  overflow-y: auto;
+}
+
+.detail-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.detail-actions button {
+ padding: 8px 12px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.edit-btn {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.edit-btn:hover {
+  background: #1976d2;
+  color: white;
+}
+
+.toggle-btn.activate {
+  background: #e8f5e8;
+  color: #2d7d32;
+}
+
+.toggle-btn.activate:hover {
+  background: #2d7d32;
+  color: white;
+}
+
+.toggle-btn.deactivate {
+  background: #fff3e0;
+  color: #f57c00;
+}
+
+.toggle-btn.deactivate:hover {
+  background: #f57c00;
+  color: white;
+}
+
+.delete-btn {
+  background: #ffebee;
+  color: #d32f2f;
+}
+
+.delete-btn:hover {
+  background: #d32f2f;
+  color: white;
+}
+
+.job-stats {
+  margin-top: 32px;
+}
+
+.job-stats h3 {
+  color: #333;
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0 0 16px 0;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.view-applications-btn {
+  width: 100%;
+  background: #0a66c2;
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+
+.view-applications-btn:hover {
+  background: #004182;
+}
+
+@media (max-width: 768px) {
+  .jobs-layout {
+    grid-template-columns: 1fr;
+    margin-left: 0;
+    height: auto;
+  }
+  
+  .jobs-list-panel {
+    max-height: 300px;
+    margin-bottom: 16px;
+  }
+  
+  .job-detail-panel {
+    min-height: 400px;
+  }
+  
+  .detail-actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .detail-actions button {
+    width: 100%;
+    justify-content: center;
+  }
+}
