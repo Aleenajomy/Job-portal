@@ -8,6 +8,7 @@ import MyApplications from '../Jobs/MyApplications';
 import CommentSection from '../Posts/CommentSection';
 import ImageSlider from '../Posts/ImageSlider';
 import PostCard from '../Posts/PostCard';
+import MyNetwork from '../Network/MyNetwork';
 import { postService } from '../../services/postService';
 import { AiOutlineTeam, AiOutlineHome, AiOutlineUser, AiOutlineLike, AiOutlineComment, AiFillLike } from "react-icons/ai";
 import { CiBellOn } from "react-icons/ci";
@@ -15,6 +16,7 @@ import { MdPostAdd, MdWork, MdImage, MdClose, MdEdit, MdDelete, MdMoreVert } fro
 import { IoSettingsOutline, IoLogOutOutline } from "react-icons/io5";
 import { BiText } from "react-icons/bi";
 import { RiUserFollowLine } from "react-icons/ri";
+import Snowfall from 'react-snowfall';
 
 import { apiService } from '../../services/apiService';
 import { STORAGE_KEYS } from '../../constants/index.js';
@@ -23,7 +25,7 @@ const API_BASE_URL = apiService.getBaseUrl();
 
 export default function NewHome({ onLogout, onChangePassword, userEmail, userName, jobRole }) {
   const [showProfile, setShowProfile] = useState(false);
-  const [currentView, setCurrentView] = useState('home'); // 'home', 'jobs', 'jobDetail', 'management', 'myApplications', 'posts'
+  const [currentView, setCurrentView] = useState('home'); // 'home', 'jobs', 'jobDetail', 'management', 'myApplications', 'posts', 'network'
   const [selectedJob, setSelectedJob] = useState(null);
   const [managedJobs, setManagedJobs] = useState([]);
   const [jobListRefresh, setJobListRefresh] = useState(0);
@@ -38,6 +40,7 @@ export default function NewHome({ onLogout, onChangePassword, userEmail, userNam
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [showMobileNav, setShowMobileNav] = useState(false);
 
   // Load posts from API
   const loadPosts = async () => {
@@ -228,7 +231,7 @@ export default function NewHome({ onLogout, onChangePassword, userEmail, userNam
               <AiOutlineHome size={20} />
               <span>Home</span>
             </button>
-            <button className="nav-icon-btn">
+            <button className="nav-icon-btn" onClick={() => setCurrentView('network')}>
               <AiOutlineTeam size={20} />
               <span>Network</span>
             </button>
@@ -245,6 +248,11 @@ export default function NewHome({ onLogout, onChangePassword, userEmail, userNam
               <span>Notifications</span>
             </button>
           </nav>
+          <button className="hamburger-menu" onClick={() => setShowMobileNav(!showMobileNav)}>
+            <div className="hamburger-line"></div>
+            <div className="hamburger-line"></div>
+            <div className="hamburger-line"></div>
+          </button>
         </div>
         <div className="header-right">
           <button className="nav-icon-btn" onClick={() => setShowProfile(true)}>
@@ -261,6 +269,43 @@ export default function NewHome({ onLogout, onChangePassword, userEmail, userNam
           </button>
         </div>
       </header>
+
+      <div className={`mobile-nav ${showMobileNav ? 'open' : ''}`}>
+        <div className="mobile-nav-grid">
+          <button className="mobile-nav-btn" onClick={() => { setCurrentView('home'); setShowMobileNav(false); }}>
+            <AiOutlineHome size={24} />
+            <span>Home</span>
+          </button>
+          <button className="mobile-nav-btn" onClick={() => { setCurrentView('network'); setShowMobileNav(false); }}>
+            <AiOutlineTeam size={24} />
+            <span>Network</span>
+          </button>
+          <button className="mobile-nav-btn" onClick={() => { setCurrentView('jobs'); setShowMobileNav(false); }}>
+            <MdWork size={24} />
+            <span>Jobs</span>
+          </button>
+          <button className="mobile-nav-btn" onClick={() => { setCurrentView('posts'); setShowMobileNav(false); }}>
+            <MdPostAdd size={24} />
+            <span>Posts</span>
+          </button>
+          <button className="mobile-nav-btn" onClick={() => setShowMobileNav(false)}>
+            <CiBellOn size={24} />
+            <span>Notifications</span>
+          </button>
+          <button className="mobile-nav-btn" onClick={() => { setShowProfile(true); setShowMobileNav(false); }}>
+            <AiOutlineUser size={24} />
+            <span>Profile</span>
+          </button>
+          <button className="mobile-nav-btn" onClick={() => { onChangePassword(); setShowMobileNav(false); }}>
+            <IoSettingsOutline size={24} />
+            <span>Settings</span>
+          </button>
+          <button className="mobile-nav-btn" onClick={() => { handleLogout(); setShowMobileNav(false); }}>
+            <IoLogOutOutline size={24} />
+            <span>Logout</span>
+          </button>
+        </div>
+      </div>
 
       {showProfile ? (
         <div className="profile-page">
@@ -309,6 +354,12 @@ export default function NewHome({ onLogout, onChangePassword, userEmail, userNam
       ) : currentView === 'myApplications' ? (
         <MyApplications 
           onBack={() => setCurrentView('jobs')}
+        />
+      ) : currentView === 'network' ? (
+        <MyNetwork 
+          userRole={jobRole}
+          userName={userName}
+          userEmail={userEmail}
         />
       ) : currentView === 'posts' ? (
         <main className="new-home-main">
@@ -360,8 +411,19 @@ export default function NewHome({ onLogout, onChangePassword, userEmail, userNam
           </div>
         </main>
       ) : (
-        <div className="home-layout">
-          <aside className="sidebar">
+        // <div style={{ position: 'relative', height: '100vh' }}>
+        //   <Snowfall
+        //     color="white"
+        //     snowflakeCount={2000}
+        //     style={{
+        //       position: 'absolute',
+        //       width: '100%',
+        //       height: '100%',
+        //     }}
+        //   />
+          
+          <div className="home-layout" >
+            <aside className="sidebar">
             <div className="profile-card">
               <div className="profile-header">
                 <div className="profile-photo">
@@ -429,6 +491,7 @@ export default function NewHome({ onLogout, onChangePassword, userEmail, userNam
               </div>
             </div>
           </aside>
+         
         </div>
       )}
       

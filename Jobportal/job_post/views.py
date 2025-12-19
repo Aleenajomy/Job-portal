@@ -7,8 +7,10 @@ from django.core.mail import send_mail
 from django.conf import settings
 from datetime import timedelta
 from django.utils import timezone
+from django.http import HttpResponse, Http404
 import logging
 import re
+import os
 from .models import JobPost, JobApplication
 from .serializers import JobPostListSerializer, JobPostDetailSerializer, JobApplicationSerializer, ApplicationListSerializer, ApplicantSerializer, ApplicationDetailSerializer
 from .permissions import IsEmployerOrCompanyOrReadOnly, CanApplyToJob
@@ -641,4 +643,34 @@ class UserPermissionsView(generics.GenericAPIView):
                 'error': 'PERMISSIONS_RETRIEVAL_FAILED',
                 'message': 'Failed to retrieve user permissions. Please try again.'
             }, status=500)
+
+class DownloadResumeView(generics.GenericAPIView):
+    """Download resume for a specific application"""
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request, application_id, *args, **kwargs):
+        try:
+            # Get the application
+            application = JobApplication.objects.select_related('job', 'applicant').get(id=application_id)
+            
+            # Check if user has permission (job owner or applicant)
+            if application.job.publisher != request.user and application.applicant != request.user:
+                return Response({'error': 'Permission denied'}, status=403)
+            
+            # Check if resume exists
+            if not application.resume or not os.path.exists(application.resume.path):
+                return Response({'error': 'Resume not found'}, status=404)
+            
+            # Serve the file
+            with open(application.resume.path, 'rb') as resume_file:
+                response = HttpResponse(resume_file.read(), content_type='application/pdf')
+                filename = f"{application.applicant.first_name}_{application.applicant.last_name}_Resume.pdf"
+                response['Content-Disposition'] = f'attachment; filename="{filename}"'
+                return response
+                
+        except JobApplication.DoesNotExist:
+            return Response({'error': 'Application not found'}, status=404)
+        except Exception as e:
+            logger.error(f"Error downloading resume: {str(e)}")
+            return Response({'error': 'Failed to download resume'}, status=500)
 

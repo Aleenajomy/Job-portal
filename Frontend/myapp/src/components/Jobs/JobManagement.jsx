@@ -4,7 +4,7 @@ import './JobManagement.css';
 import { jobAPI } from '../../utils/api';
 import ViewApplications from './ViewApplications';
 import ApplicantDetail from './ApplicantDetail';
-import { MdDeleteOutline, MdToggleOn, MdToggleOff, MdLocationOn, MdWork, MdAttachMoney, MdLanguage } from "react-icons/md";
+import { MdDeleteOutline, MdLocationOn, MdWork, MdAttachMoney, MdLanguage, MdCheckCircle, MdPause } from "react-icons/md";
 import { CiEdit } from "react-icons/ci";
 
 export default function JobManagement({ userRole, onBack, jobs, setJobs }) {
@@ -127,28 +127,57 @@ export default function JobManagement({ userRole, onBack, jobs, setJobs }) {
 
   const toggleJobStatus = async (jobId) => {
     try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        alert('Please login to continue');
+        window.location.reload();
+        return;
+      }
+
       const job = jobs.find(j => j.id === jobId);
+      if (!job) return;
+      
       const newStatus = !job.is_active;
       const endpoint = newStatus ? 'activate' : 'deactivate';
+      
+      console.log(`Toggling job ${jobId} from ${job.is_active} to ${newStatus}`);
       
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/jobs/${jobId}/${endpoint}/`, {
         method: 'PATCH',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
       
+      if (response.status === 401) {
+        alert('Session expired. Please login again.');
+        localStorage.clear();
+        window.location.reload();
+        return;
+      }
+      
       if (!response.ok) {
+        const errorData = await response.text();
+        console.error('Toggle failed:', errorData);
         throw new Error('Failed to update job status');
       }
       
+      console.log('Toggle successful');
+      
+      // Update jobs state
       setJobs(prev => prev.map(job => 
         job.id === jobId 
           ? { ...job, is_active: newStatus }
           : job
       ));
+      
+      // Update selected job if it's the one being toggled
+      if (selectedJob && selectedJob.id === jobId) {
+        setSelectedJob(prev => ({ ...prev, is_active: newStatus }));
+      }
     } catch (error) {
+      console.error('Toggle error:', error);
       alert(error.message || 'Failed to update job status');
     }
   };
@@ -366,7 +395,7 @@ export default function JobManagement({ userRole, onBack, jobs, setJobs }) {
                 <div className="item-header">
                   <h4 className="item-title">{job.title}</h4>
                   <span className={`status-badge ${job.is_active ? 'active' : 'inactive'}`}>
-                    {job.is_active ? '✅' : '⏸️'}
+                    {job.is_active ? <MdCheckCircle /> : <MdPause />}
                   </span>
                 </div>
                 <p className="item-company">{job.company_name}</p>
@@ -378,7 +407,7 @@ export default function JobManagement({ userRole, onBack, jobs, setJobs }) {
             ))
           ) : (
             <div className="empty-list">
-              <div className="empty-icon">💼</div>
+              <div className="empty-icon"><MdWork /></div>
               <p>No jobs posted yet</p>
             </div>
           )}
@@ -397,11 +426,11 @@ export default function JobManagement({ userRole, onBack, jobs, setJobs }) {
                     <CiEdit />
                   </button>
                   <button 
-                    className={`toggle-btn ${selectedJob.is_active ? 'deactivate' : 'activate'}`}
+                    className={`job-toggle ${selectedJob.is_active ? 'active' : ''}`}
                     onClick={() => toggleJobStatus(selectedJob.id)}
+                    title={selectedJob.is_active ? 'Active' : 'Inactive'}
                   >
-                    {selectedJob.is_active ? <MdToggleOff /> : <MdToggleOn />}
-                    {/* {selectedJob.is_active ? 'Deactivate' : 'Activate'} */}
+                    <div className="toggle-slider"></div>
                   </button>
                   <button className="delete-btn" onClick={() => handleDelete(selectedJob.id)}>
                     <MdDeleteOutline /> 

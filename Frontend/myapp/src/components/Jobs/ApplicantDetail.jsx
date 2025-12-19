@@ -49,18 +49,55 @@ export default function ApplicantDetail({ applicationId, onBack }) {
     }
   };
 
+  const downloadResume = async (applicationId, applicantName) => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/applications/${applicationId}/resume/download/`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      
+      if (!response.ok) {
+        if (response.status === 404) {
+          alert('Resume not found for this application');
+          return;
+        }
+        throw new Error('Failed to download resume');
+      }
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${applicantName.replace(/\s+/g, '_')}_Resume.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Error downloading resume:', error);
+      alert('Failed to download resume');
+    }
+  };
+
   if (loading) return <div className="loading">Loading application details...</div>;
   if (!application) return <div className="error">Application not found</div>;
 
   return (
     <div className="applicant-detail-container">
-      <button className="back-btn" onClick={onBack}>←</button>
-      
       <div className="applicant-detail-header">
-        <h1>Application Details</h1>
-        <span className={`status-badge ${application.status || 'submitted'}`}>
-          {application.status || 'submitted'}
-        </span>
+        <div className="header-content">
+          <button className="back-btn" onClick={onBack}>
+            ← 
+          </button>
+          <h1>Application Details</h1>
+          <span className={`status-badge status-${application.status || 'submitted'}`}>
+            {application.status ? 
+              application.status.charAt(0).toUpperCase() + application.status.slice(1) : 
+              'Submitted'
+            }
+          </span>
+        </div>
       </div>
 
       <div className="applicant-detail-content">
@@ -121,18 +158,24 @@ export default function ApplicantDetail({ applicationId, onBack }) {
 
         <div className="resume-section">
           <h2>Resume</h2>
-          {application.resume_url ? (
-            <a 
-              href={application.resume_url} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="resume-link"
+          <div className="resume-actions">
+            <button 
+              className="download-resume-btn"
+              onClick={() => downloadResume(applicationId, application.applicant_name)}
             >
-              Download Resume
-            </a>
-          ) : (
-            <span>No resume available</span>
-          )}
+              📄 Download Resume
+            </button>
+            {application.resume && (
+              <a 
+                href={`${import.meta.env.VITE_API_BASE_URL}${application.resume}`} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="view-resume-link"
+              >
+                👁️ View Resume
+              </a>
+            )}
+          </div>
         </div>
 
         <div className="status-update-section">

@@ -118,17 +118,6 @@ export default function ViewApplications({ jobId, jobTitle, onBack, onViewApplic
                   <p className="detail-email">{selectedApplicant.applicant_email}</p>
                 </div>
                 <div className="detail-actions">
-                  <select 
-                    value={selectedApplicant.status}
-                    onChange={(e) => updateStatus(selectedApplicant.id, e.target.value)}
-                    className="status-select"
-                  >
-                    <option value="submitted">Submitted</option>
-                    <option value="reviewing">Reviewing</option>
-                    <option value="shortlisted">Shortlisted</option>
-                    <option value="rejected">Rejected</option>
-                    <option value="hired">Hired</option>
-                  </select>
                   <button 
                     className="view-full-btn"
                     onClick={() => onViewApplicant(selectedApplicant.id)}
