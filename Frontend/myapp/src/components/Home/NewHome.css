@@ -1176,7 +1176,23 @@
   color: #0a66c2;
 }
 
-/* Responsive */
+/* Large tablet styles */
+@media (max-width: 1024px) {
+  .home-layout {
+    padding: 20px 8px;
+    gap: 12px;
+  }
+  
+  .sidebar {
+    width: 280px;
+  }
+  
+  .right-sidebar {
+    width: 280px;
+  }
+}
+
+/* Tablet styles */
 @media (max-width: 768px) {
   .new-home-header {
     padding: 0 16px;
@@ -1201,12 +1217,24 @@
     display: none;
   }
   
-  .welcome-section {
-    padding: 24px 16px;
+  .home-layout {
+    flex-direction: column;
+    padding: 12px;
+    gap: 16px;
   }
   
-  .welcome-section h1 {
-    font-size: 24px;
+  .sidebar {
+    width: 100%;
+    order: 1;
+  }
+  
+  .main-content {
+    width: 100%;
+    order: 2;
+  }
+  
+  .right-sidebar {
+    display: none;
   }
   
   .profile-content {
@@ -1217,6 +1245,7 @@
   .post-modal {
     width: 95%;
     max-height: 90vh;
+    margin: 20px;
   }
   
   .modal-body {
@@ -1235,5 +1264,148 @@
   
   .upload-btn {
     justify-content: center;
+  }
+  
+  .post-buttons {
+    padding-left: 0;
+    justify-content: space-around;
+    flex-wrap: wrap;
+  }
+  
+  .post-btn {
+    flex: 1;
+    min-width: 120px;
+    justify-content: center;
+  }
+}
+
+/* Mobile styles */
+@media (max-width: 480px) {
+  .new-home-header {
+    padding: 0 12px;
+    height: 56px;
+  }
+  
+  .logo {
+    font-size: 20px;
+  }
+  
+  .home-layout {
+    padding: 8px;
+  }
+  
+  .profile-card,
+  .trending-card,
+  .post-creation-card,
+  .post-card {
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+  
+  .profile-photo,
+  .user-avatar,
+  .post-avatar {
+    width: 40px;
+    height: 40px;
+    font-size: 16px;
+  }
+  
+  .profile-info h3 {
+    font-size: 16px;
+  }
+  
+  .post-input {
+    padding: 10px 14px;
+    font-size: 14px;
+  }
+  
+  .post-buttons {
+    gap: 8px;
+  }
+  
+  .post-btn {
+    padding: 6px 8px;
+    font-size: 12px;
+    min-width: 100px;
+  }
+  
+  .post-modal {
+    width: 98%;
+    max-height: 95vh;
+    margin: 10px;
+  }
+  
+  .modal-header,
+  .modal-body {
+    padding: 12px;
+  }
+  
+  .post-textarea {
+    min-height: 100px;
+    font-size: 14px;
+  }
+  
+  .images-preview {
+    grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+    gap: 8px;
+  }
+  
+  .image-preview {
+    aspect-ratio: 1;
+  }
+  
+  .post-actions {
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  
+  .action-btn {
+    flex: 1;
+    min-width: 80px;
+    padding: 6px 8px;
+    font-size: 12px;
+  }
+}
+
+/* Extra small mobile styles */
+@media (max-width: 360px) {
+  .new-home-header {
+    padding: 0 8px;
+    height: 52px;
+  }
+  
+  .logo {
+    font-size: 18px;
+  }
+  
+  .home-layout {
+    padding: 4px;
+  }
+  
+  .profile-card,
+  .trending-card,
+  .post-creation-card,
+  .post-card {
+    padding: 12px;
+  }
+  
+  .post-buttons {
+    flex-direction: column;
+    gap: 6px;
+  }
+  
+  .post-btn {
+    width: 100%;
+    min-width: auto;
+  }
+  
+  .mobile-nav-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  
+  .mobile-nav-btn {
+    padding: 12px;
+    font-size: 11px;
   }
 }

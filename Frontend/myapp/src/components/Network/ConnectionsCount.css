@@ -1,0 +1,83 @@
+.connections-count {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #666;
+  font-weight: 500;
+}
+
+.connections-count.small {
+  font-size: 12px;
+}
+
+.connections-count.small .connections-icon {
+  font-size: 14px;
+}
+
+.connections-count.medium {
+  font-size: 14px;
+}
+
+.connections-count.medium .connections-icon {
+  font-size: 16px;
+}
+
+.connections-count.large {
+  font-size: 16px;
+}
+
+.connections-count.large .connections-icon {
+  font-size: 18px;
+}
+
+.connections-icon {
+  color: #0a66c2;
+}
+
+.connections-number {
+  color: #0a66c2;
+  font-weight: 600;
+}
+
+.connections-label {
+  color: #666;
+}
+
+.connections-detailed {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.connections-detailed .stat {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.connections-detailed .stat:last-child {
+  border-bottom: none;
+}
+
+.connections-detailed .stat.total {
+  font-weight: 600;
+  color: #0a66c2;
+}
+
+.connections-detailed .count {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+}
+
+.connections-detailed .stat.total .count {
+  color: #0a66c2;
+}
+
+.connections-detailed .label {
+  font-size: 14px;
+  color: #666;
+}

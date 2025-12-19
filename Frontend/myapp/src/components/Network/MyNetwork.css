@@ -144,8 +144,14 @@
 
 .network-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 20px;
+}
+
+@media (max-width: 320px) {
+  .network-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .network-card {
@@ -305,6 +311,23 @@
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
+/* Tablet styles */
+@media (max-width: 1024px) {
+  .my-network-container {
+    padding: 20px;
+  }
+  
+  .network-header {
+    padding: 24px;
+  }
+  
+  .network-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 18px;
+  }
+}
+
+/* Mobile styles */
 @media (max-width: 768px) {
   .my-network-container {
     padding: 16px;
@@ -323,6 +346,7 @@
   
   .network-stats {
     gap: 24px;
+    justify-content: center;
   }
   
   .stat-number {
@@ -337,11 +361,13 @@
   .network-tabs {
     padding: 4px;
     gap: 4px;
+    justify-content: flex-start;
   }
   
   .tab-btn {
     padding: 10px 12px;
     font-size: 12px;
+    min-width: auto;
   }
   
   .tab-btn span:not(.tab-count) {
@@ -368,5 +394,99 @@
   
   .user-stats {
     gap: 12px;
+  }
+  
+  .card-actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .action-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* Small mobile styles */
+@media (max-width: 480px) {
+  .my-network-container {
+    padding: 12px;
+  }
+  
+  .network-header {
+    padding: 16px;
+  }
+  
+  .network-header h1 {
+    font-size: 20px;
+  }
+  
+  .network-stats {
+    gap: 16px;
+  }
+  
+  .stat-number {
+    font-size: 18px;
+  }
+  
+  .stat-label {
+    font-size: 12px;
+  }
+  
+  .search-input {
+    padding: 12px 12px 12px 40px;
+    font-size: 14px;
+  }
+  
+  .search-icon {
+    left: 12px;
+    font-size: 18px;
+  }
+  
+  .network-card {
+    padding: 16px;
+  }
+  
+  .card-avatar {
+    width: 50px;
+    height: 50px;
+  }
+  
+  .avatar-placeholder {
+    font-size: 20px;
+  }
+  
+  .card-content h3 {
+    font-size: 16px;
+  }
+  
+  .card-content .role,
+  .card-content .company {
+    font-size: 13px;
+  }
+}
+
+/* Extra small mobile styles */
+@media (max-width: 360px) {
+  .my-network-container {
+    padding: 8px;
+  }
+  
+  .network-header {
+    padding: 12px;
+  }
+  
+  .network-stats {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .network-card {
+    padding: 12px;
+  }
+  
+  .action-btn {
+    padding: 10px 12px;
+    font-size: 13px;
   }
 }

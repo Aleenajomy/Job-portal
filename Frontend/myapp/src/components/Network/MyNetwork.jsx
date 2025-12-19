@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import './MyNetwork.css';
 import { MdPersonAdd, MdPersonRemove, MdSearch, MdGroup } from 'react-icons/md';
+import { networkService } from '../../services/networkService.js';
 
 export default function MyNetwork({ userRole, userName, userEmail }) {
   const [activeTab, setActiveTab] = useState('suggestions');
@@ -9,7 +10,8 @@ export default function MyNetwork({ userRole, userName, userEmail }) {
   const [following, setFollowing] = useState([]);
   const [followers, setFollowers] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [stats, setStats] = useState({ following: 0, followers: 0 });
+  const [followLoading, setFollowLoading] = useState({});
+  const [stats, setStats] = useState({ following: 0, followers: 0, total: 0 });
 
   const tabs = [
     { id: 'suggestions', label: 'Suggestions', icon: MdPersonAdd },
@@ -18,40 +20,55 @@ export default function MyNetwork({ userRole, userName, userEmail }) {
   ];
 
   useEffect(() => {
+    loadNetworkStats();
     loadTabData(activeTab);
   }, [activeTab]);
+
+  // Refresh data when component mounts to ensure sync
+  useEffect(() => {
+    const refreshData = async () => {
+      await loadNetworkStats();
+      await loadTabData('suggestions');
+    };
+    refreshData();
+  }, []);
+
+  const loadNetworkStats = async () => {
+    try {
+      const response = await networkService.getNetworkStats();
+      setStats({
+        following: response.following_count,
+        followers: response.followers_count,
+        total: response.total_connections
+      });
+    } catch (error) {
+      console.error('Error loading network stats:', error);
+    }
+  };
 
   const loadTabData = async (tab) => {
     setLoading(true);
     try {
-      const allUsers = [
-        { id: 1, name: 'Alice Johnson', role: 'Senior UX Designer', company: 'Design Studio', connections: 245, posts: 12, isFollowing: false },
-        { id: 2, name: 'Bob Wilson', role: 'Data Scientist', company: 'AI Labs', connections: 189, posts: 8, isFollowing: true },
-        { id: 3, name: 'Carol Brown', role: 'Marketing Manager', company: 'Brand Co', connections: 356, posts: 24, isFollowing: false },
-        { id: 4, name: 'David Chen', role: 'Full Stack Developer', company: 'Tech Startup', connections: 167, posts: 15, isFollowing: true },
-        { id: 5, name: 'Emma Davis', role: 'Product Manager', company: 'Innovation Corp', connections: 298, posts: 18, isFollowing: false },
-        { id: 6, name: 'Frank Miller', role: 'DevOps Engineer', company: 'Cloud Solutions', connections: 134, posts: 6, isFollowing: false },
-        { id: 7, name: 'Grace Lee', role: 'UI/UX Designer', company: 'Creative Agency', connections: 278, posts: 21, isFollowing: true },
-        { id: 8, name: 'Henry Taylor', role: 'Software Architect', company: 'Enterprise Tech', connections: 412, posts: 9, isFollowing: false }
-      ];
-
       switch (tab) {
         case 'suggestions':
-          setUsers(allUsers.filter(user => !user.isFollowing));
+          const suggestionsResponse = await networkService.getUserSuggestions();
+          const suggestions = suggestionsResponse.suggestions || [];
+          // Ensure isFollowing is properly set
+          const updatedSuggestions = suggestions.map(user => ({
+            ...user,
+            isFollowing: user.isFollowing || false
+          }));
+          setUsers(updatedSuggestions);
           break;
         case 'following':
-          setFollowing(allUsers.filter(user => user.isFollowing));
+          const followingResponse = await networkService.getMyFollowing();
+          setFollowing(followingResponse.following || []);
           break;
         case 'followers':
-          setFollowers([
-            { id: 9, name: 'Sarah Johnson', role: 'Junior Developer', company: 'StartupXYZ', connections: 89, posts: 4 },
-            { id: 10, name: 'Mike Brown', role: 'QA Engineer', company: 'TestCorp', connections: 156, posts: 7 },
-            { id: 11, name: 'Lisa Wang', role: 'Business Analyst', company: 'DataCorp', connections: 203, posts: 11 }
-          ]);
+          const followersResponse = await networkService.getMyFollowers();
+          setFollowers(followersResponse.followers || []);
           break;
       }
-      
-      setStats({ following: 3, followers: 3 });
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -59,29 +76,73 @@ export default function MyNetwork({ userRole, userName, userEmail }) {
     }
   };
 
-  const handleFollow = (id) => {
-    setUsers(prev => prev.map(user => 
-      user.id === id ? { ...user, isFollowing: !user.isFollowing } : user
-    ));
-    setFollowing(prev => {
-      const user = users.find(u => u.id === id);
-      if (user && !user.isFollowing) {
-        return [...prev, { ...user, isFollowing: true }];
+  const handleFollow = async (id) => {
+    if (followLoading[id]) return;
+    
+    setFollowLoading(prev => ({ ...prev, [id]: true }));
+    try {
+      await networkService.followUser(id);
+      
+      // Update local state immediately
+      setUsers(prev => prev.map(user => 
+        user.id === id ? { ...user, isFollowing: true } : user
+      ));
+      setFollowers(prev => prev.map(user => 
+        user.id === id ? { ...user, isFollowing: true } : user
+      ));
+      
+      // Add to following list if not already there
+      const userToAdd = [...users, ...followers].find(u => u.id === id);
+      if (userToAdd && !following.some(f => f.id === id)) {
+        setFollowing(prev => [...prev, { ...userToAdd, isFollowing: true }]);
       }
-      return prev.filter(u => u.id !== id);
-    });
-    setStats(prev => ({
-      ...prev,
-      following: prev.following + (users.find(u => u.id === id)?.isFollowing ? -1 : 1)
-    }));
+      
+      // Reload data to get fresh stats
+      await loadNetworkStats();
+      await loadTabData(activeTab);
+    } catch (error) {
+      console.error('Error following user:', error);
+      // If already following, update the UI state
+      if (error.message.includes('Already following')) {
+        setUsers(prev => prev.map(user => 
+          user.id === id ? { ...user, isFollowing: true } : user
+        ));
+      }
+    } finally {
+      setFollowLoading(prev => ({ ...prev, [id]: false }));
+    }
   };
 
-  const handleUnfollow = (id) => {
-    setFollowing(prev => prev.filter(user => user.id !== id));
-    setUsers(prev => prev.map(user => 
-      user.id === id ? { ...user, isFollowing: false } : user
-    ));
-    setStats(prev => ({ ...prev, following: prev.following - 1 }));
+  const handleUnfollow = async (id) => {
+    if (followLoading[id]) return;
+    
+    setFollowLoading(prev => ({ ...prev, [id]: true }));
+    try {
+      await networkService.unfollowUser(id);
+      
+      // Update local state immediately
+      setFollowing(prev => prev.filter(user => user.id !== id));
+      setUsers(prev => prev.map(user => 
+        user.id === id ? { ...user, isFollowing: false } : user
+      ));
+      setFollowers(prev => prev.map(user => 
+        user.id === id ? { ...user, isFollowing: false } : user
+      ));
+      
+      // Reload data to get fresh stats
+      await loadNetworkStats();
+      await loadTabData(activeTab);
+    } catch (error) {
+      console.error('Error unfollowing user:', error);
+      // If not following, update the UI state
+      if (error.message.includes('Not following')) {
+        setUsers(prev => prev.map(user => 
+          user.id === id ? { ...user, isFollowing: false } : user
+        ));
+      }
+    } finally {
+      setFollowLoading(prev => ({ ...prev, [id]: false }));
+    }
   };
 
   const filteredData = () => {
@@ -91,53 +152,77 @@ export default function MyNetwork({ userRole, userName, userEmail }) {
     if (!searchQuery) return data;
     
     return data.filter(user => 
-      user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.role.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.company.toLowerCase().includes(searchQuery.toLowerCase())
+      user.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.role?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.company?.toLowerCase().includes(searchQuery.toLowerCase())
     );
   };
 
-  const renderUserCard = (user, showUnfollow = false) => (
-    <div key={user.id} className="network-card user-card">
-      <div className="card-avatar">
-        <div className="avatar-placeholder">{user.name.charAt(0)}</div>
-      </div>
-      <div className="card-content">
-        <h3>{user.name}</h3>
-        <p className="role">{user.role}</p>
-        <p className="company">{user.company}</p>
-        <div className="user-stats">
-          <span className="stat">
-            <strong>{user.connections}</strong> connections
-          </span>
-          <span className="stat">
-            <strong>{user.posts}</strong> posts
-          </span>
+  const renderUserCard = (user, showUnfollow = false) => {
+    // Determine if we're following this user
+    let isFollowingBack = user.isFollowing;
+    if (activeTab === 'followers') {
+      isFollowingBack = following.some(f => f.id === user.id);
+    }
+    
+    return (
+      <div key={user.id} className="network-card user-card">
+        <div className="card-avatar">
+          <div className="avatar-placeholder">{user.name.charAt(0)}</div>
+        </div>
+        <div className="card-content">
+          <h3>{user.name}</h3>
+          <p className="role">{user.role}</p>
+          <p className="company">{user.company}</p>
+          <div className="user-stats">
+            {user.total_connections !== undefined && (
+              <span className="stat">
+                <strong>{user.total_connections}</strong> connections
+              </span>
+            )}
+            {user.posts_count !== undefined && (
+              <span className="stat">
+                <strong>{user.posts_count}</strong> posts
+              </span>
+            )}
+          </div>
+        </div>
+        <div className="card-actions">
+          {showUnfollow ? (
+            <button 
+              className="action-btn unfollow"
+              onClick={() => handleUnfollow(user.id)}
+              disabled={followLoading[user.id]}
+            >
+              {followLoading[user.id] ? '...' : (
+                <><MdPersonRemove /> Unfollow</>
+              )}
+            </button>
+          ) : (
+            <button 
+              className={`action-btn ${isFollowingBack ? 'following' : 'follow'}`}
+              onClick={() => {
+                if (isFollowingBack) {
+                  handleUnfollow(user.id);
+                } else {
+                  handleFollow(user.id);
+                }
+              }}
+              disabled={followLoading[user.id]}
+            >
+              {followLoading[user.id] ? '...' : (
+                isFollowingBack ? (
+                  <><MdPersonRemove /> Following</>
+                ) : (
+                  <><MdPersonAdd /> {activeTab === 'followers' ? 'Follow Back' : 'Follow'}</>
+                )
+              )}
+            </button>
+          )}
         </div>
       </div>
-      <div className="card-actions">
-        {showUnfollow ? (
-          <button 
-            className="action-btn unfollow"
-            onClick={() => handleUnfollow(user.id)}
-          >
-            <MdPersonRemove /> Unfollow
-          </button>
-        ) : (
-          <button 
-            className={`action-btn ${user.isFollowing ? 'following' : 'follow'}`}
-            onClick={() => handleFollow(user.id)}
-          >
-            {user.isFollowing ? (
-              <><MdPersonRemove /> Following</>
-            ) : (
-              <><MdPersonAdd /> Follow</>
-            )}
-          </button>
-        )}
-      </div>
-    </div>
-  );
+    );
+  };
 
   const renderTabContent = () => {
     if (loading) {
@@ -167,6 +252,10 @@ export default function MyNetwork({ userRole, userName, userEmail }) {
       <div className="network-header">
         <h1>My Network</h1>
         <div className="network-stats">
+          <div className="stat-item">
+            <span className="stat-number">{stats.total}</span>
+            <span className="stat-label">Total Connections</span>
+          </div>
           <div className="stat-item">
             <span className="stat-number">{stats.following}</span>
             <span className="stat-label">Following</span>

@@ -12,18 +12,11 @@ class FollowSerializer(serializers.ModelSerializer):
         follower = self.context['request'].user
         following = data['following']
         
-
-        
-        print(f"Serializer - Follower: {follower.id}, Following: {following.id}")
         result = can_follow(follower, following)
-        print(f"can_follow returned: {result}")
         
         if result == "self":
-            print("Raising self-follow error")
             raise serializers.ValidationError("You cannot follow yourself.")
         elif not result:
-            print("Raising role restriction error")
             raise serializers.ValidationError("You cannot follow this user based on role restrictions.")
         
-        print("Validation passed")
         return data

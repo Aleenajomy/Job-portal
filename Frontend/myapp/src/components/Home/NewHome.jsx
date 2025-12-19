@@ -9,6 +9,8 @@ import CommentSection from '../Posts/CommentSection';
 import ImageSlider from '../Posts/ImageSlider';
 import PostCard from '../Posts/PostCard';
 import MyNetwork from '../Network/MyNetwork';
+import { ConnectionsCount } from '../Network';
+import { networkService } from '../../services/networkService';
 import { postService } from '../../services/postService';
 import { AiOutlineTeam, AiOutlineHome, AiOutlineUser, AiOutlineLike, AiOutlineComment, AiFillLike } from "react-icons/ai";
 import { CiBellOn } from "react-icons/ci";
@@ -41,6 +43,7 @@ export default function NewHome({ onLogout, onChangePassword, userEmail, userNam
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [showMobileNav, setShowMobileNav] = useState(false);
+  const [connectionStatsKey, setConnectionStatsKey] = useState(0);
 
   // Load posts from API
   const loadPosts = async () => {
@@ -436,14 +439,7 @@ export default function NewHome({ onLogout, onChangePassword, userEmail, userNam
                 </div>
               </div>
               <div className="profile-stats">
-                <div className="stat">
-                  <span className="count">245</span>
-                  <span className="label">Followers</span>
-                </div>
-                <div className="stat">
-                  <span className="count">180</span>
-                  <span className="label">Following</span>
-                </div>
+                <ConnectionsCount detailed={true} key={connectionStatsKey} />
               </div>
             </div>
           </aside>
@@ -469,6 +465,7 @@ export default function NewHome({ onLogout, onChangePassword, userEmail, userNam
                   onCommentCountChange={handleCommentCountChange}
                   formatTimestamp={formatTimestamp}
                   showFollowButton={true}
+                  onFollowAction={() => setConnectionStatsKey(prev => prev + 1)}
                 />
               ))}
             </div>

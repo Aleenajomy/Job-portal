@@ -3,6 +3,8 @@ import './Jobs.css';
 import { validateJobApplication, canApplyToJobs, USER_ROLES } from '../../utils/roleValidation';
 import { jobAPI } from '../../utils/api';
 import { MdCheckCircle } from 'react-icons/md';
+import { RiUserFollowLine, RiUserUnfollowLine } from 'react-icons/ri';
+import { networkService } from '../../services/networkService';
 
 
 
@@ -15,6 +17,8 @@ const JobDetail = ({ job, onBack, userRole }) => {
     resume: null,
     coverLetter: ''
   });
+  const [isFollowingCompany, setIsFollowingCompany] = useState(false);
+  const [followLoading, setFollowLoading] = useState(false);
 
   // Fetch full job details when component mounts
   React.useEffect(() => {
@@ -25,9 +29,11 @@ const JobDetail = ({ job, onBack, userRole }) => {
       try {
         const jobDetails = await jobAPI.getJob(job.id);
         setFullJob(jobDetails);
+        setIsFollowingCompany(jobDetails.is_following_company || false);
       } catch (error) {
         console.error('Error fetching job details:', error);
         setFullJob(job); // Fallback to original job data
+        setIsFollowingCompany(job?.is_following_company || false);
       } finally {
         setLoading(false);
       }
@@ -161,6 +167,31 @@ const JobDetail = ({ job, onBack, userRole }) => {
 
   const handleSaveJob = () => {
     alert(`Job saved: ${fullJob.title}`);
+  };
+
+  const handleFollowCompany = async () => {
+    console.log('Follow company clicked. Publisher ID:', fullJob.publisher_id);
+    console.log('Full job data:', fullJob);
+    
+    if (followLoading || !fullJob.publisher_id) {
+      console.log('Cannot follow: loading or no publisher_id');
+      return;
+    }
+    
+    setFollowLoading(true);
+    try {
+      if (isFollowingCompany) {
+        await networkService.unfollowUser(fullJob.publisher_id);
+        setIsFollowingCompany(false);
+      } else {
+        await networkService.followUser(fullJob.publisher_id);
+        setIsFollowingCompany(true);
+      }
+    } catch (error) {
+      console.error('Error following/unfollowing company:', error);
+    } finally {
+      setFollowLoading(false);
+    }
   };
 
   if (!job) return <div className="job-detail-container">Job not found</div>;
@@ -363,21 +394,24 @@ const JobDetail = ({ job, onBack, userRole }) => {
           )}
 
           <div className="company-info-card">
-            <h3>About the Company</h3>
-            {/* <div className="company-stats">
-              <div className="stat-item">
-                <span className="stat-number">50+</span>
-                <span className="stat-label">Employees</span>
-              </div>
-              <div className="stat-item">
-                <span className="stat-number">5+</span>
-                <span className="stat-label">Years</span>
-              </div>
-              <div className="stat-item">
-                <span className="stat-number">10+</span>
-                <span className="stat-label">Projects</span>
-              </div>
-            </div> */}
+            <div className="company-header">
+              <h3>About the Company</h3>
+              {isLoggedIn && !isOwnJob && fullJob.publisher_id && (
+                <button 
+                  className={`company-follow-btn ${isFollowingCompany ? 'following' : ''}`}
+                  onClick={handleFollowCompany}
+                  disabled={followLoading}
+                >
+                  {followLoading ? '...' : (
+                    isFollowingCompany ? (
+                      <><RiUserUnfollowLine size={16} /> Following</>
+                    ) : (
+                      <><RiUserFollowLine size={16} /> Follow</>
+                    )
+                  )}
+                </button>
+              )}
+            </div>
             <div className="company-description">
               {job.company_name || 'Company'} is a leading company in the industry, committed to innovation and excellence.
             </div>

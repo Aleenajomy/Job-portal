@@ -1,9 +1,11 @@
 import { AiOutlineLike, AiOutlineComment, AiFillLike } from "react-icons/ai";
 import { MdEdit, MdDelete, MdMoreVert } from "react-icons/md";
-import { RiUserFollowLine } from "react-icons/ri";
+import { RiUserFollowLine, RiUserUnfollowLine } from "react-icons/ri";
 import CommentSection from './CommentSection';
+import { useState } from 'react';
 
 import { apiService } from '../../services/apiService';
+import { networkService } from '../../services/networkService';
 
 const API_BASE_URL = apiService.getBaseUrl();
 
@@ -18,8 +20,34 @@ export default function PostCard({
   onImageClick, 
   onCommentCountChange, 
   formatTimestamp,
-  showFollowButton = true
+  showFollowButton = true,
+  onFollowAction
 }) {
+  const [isFollowing, setIsFollowing] = useState(post.is_following || false);
+  const [followLoading, setFollowLoading] = useState(false);
+
+  const handleFollow = async () => {
+    if (followLoading) return;
+    
+    setFollowLoading(true);
+    try {
+      if (isFollowing) {
+        await networkService.unfollowUser(post.author_id);
+        setIsFollowing(false);
+      } else {
+        await networkService.followUser(post.author_id);
+        setIsFollowing(true);
+      }
+      // Notify parent component about follow action
+      if (onFollowAction) {
+        onFollowAction();
+      }
+    } catch (error) {
+      console.error('Error following/unfollowing user:', error);
+    } finally {
+      setFollowLoading(false);
+    }
+  };
   return (
     <div className="post-card">
       <div className="post-header">
@@ -61,9 +89,18 @@ export default function PostCard({
             )}
           </div>
         ) : showFollowButton ? (
-          <button className="follow-btn">
-            <RiUserFollowLine size={16} />
-            Follow
+          <button 
+            className={`follow-btn ${isFollowing ? 'following' : ''}`}
+            onClick={handleFollow}
+            disabled={followLoading}
+          >
+            {followLoading ? '...' : (
+              isFollowing ? (
+                <><RiUserUnfollowLine size={16} /> Following</>
+              ) : (
+                <><RiUserFollowLine size={16} /> Follow</>
+              )
+            )}
           </button>
         ) : null}
       </div>

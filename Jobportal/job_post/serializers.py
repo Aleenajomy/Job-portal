@@ -4,18 +4,20 @@ from .utils import get_applicant_name, convert_to_pdf
 import os
 
 class JobPostListSerializer(serializers.ModelSerializer):
+    publisher_id = serializers.IntegerField(source='publisher.id', read_only=True)
     publisher_name = serializers.SerializerMethodField()
     publisher_email = serializers.CharField(source="publisher.email", read_only=True)
     publisher_role = serializers.SerializerMethodField()
     company_name = serializers.SerializerMethodField()
     has_applied = serializers.SerializerMethodField()
+    is_following_company = serializers.SerializerMethodField()
 
     class Meta:
         model = JobPost
         fields = (
-            "id", "title", "description", "salary", "experience", "company_name", "publisher", 
+            "id", "title", "description", "salary", "experience", "company_name", "publisher", "publisher_id",
             "publisher_name", "publisher_email", "publisher_role", "job_type", 
-            "work_mode", "location", "requirements", "application_count", "created_at", "is_active", "has_applied"
+            "work_mode", "location", "requirements", "application_count", "created_at", "is_active", "has_applied", "is_following_company"
         )
 
     def get_publisher_name(self, obj):
@@ -56,9 +58,21 @@ class JobPostListSerializer(serializers.ModelSerializer):
             return JobApplication.objects.filter(job=obj, applicant=request.user).exists()
         return False
     
+    def get_is_following_company(self, obj):
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            return False
+        
+        try:
+            from follows.models import Follow
+            return Follow.objects.filter(follower=request.user, following=obj.publisher).exists()
+        except ImportError:
+            return False
+    
 
 
 class JobPostDetailSerializer(serializers.ModelSerializer):
+    publisher_id = serializers.IntegerField(source='publisher.id', read_only=True)
     publisher_name = serializers.SerializerMethodField()
     publisher_email = serializers.CharField(source="publisher.email", read_only=True)
     publisher_role = serializers.SerializerMethodField()
@@ -66,13 +80,14 @@ class JobPostDetailSerializer(serializers.ModelSerializer):
     publisher_profile_img = serializers.SerializerMethodField()
     company_name = serializers.SerializerMethodField()
     has_applied = serializers.SerializerMethodField()
+    is_following_company = serializers.SerializerMethodField()
 
     class Meta:
         model = JobPost
         fields = (
             "id", "title", "description", "requirements", "company_name", "location", "salary", "experience", "job_type", "work_mode",
-            "publisher", "publisher_name", "publisher_email", "publisher_role", "publisher_phone", "publisher_profile_img",
-            "created_at", "updated_at", "is_active", "application_count", "has_applied"
+            "publisher", "publisher_id", "publisher_name", "publisher_email", "publisher_role", "publisher_phone", "publisher_profile_img",
+            "created_at", "updated_at", "is_active", "application_count", "has_applied", "is_following_company"
         )
         read_only_fields = ("publisher", "publisher_name", "publisher_email", "publisher_role", "created_at", "updated_at")
         extra_kwargs = {
@@ -152,6 +167,17 @@ class JobPostDetailSerializer(serializers.ModelSerializer):
         if request and request.user.is_authenticated:
             return JobApplication.objects.filter(job=obj, applicant=request.user).exists()
         return False
+    
+    def get_is_following_company(self, obj):
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            return False
+        
+        try:
+            from follows.models import Follow
+            return Follow.objects.filter(follower=request.user, following=obj.publisher).exists()
+        except ImportError:
+            return False
     
     def update(self, instance, validated_data):
         # Only update fields that are provided

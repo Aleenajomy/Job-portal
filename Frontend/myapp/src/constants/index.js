@@ -5,6 +5,7 @@ export const API_ENDPOINTS = {
   COMMENTS: '/comments',
   AUTH: '/auth',
   USER_PERMISSIONS: '/user-permissions',
+  NETWORK: '/api-follows',
 };
 
 // Local Storage Keys

@@ -29,6 +29,59 @@
   display: flex;
   gap: 8px;
   align-items: center;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 480px) {
+  .comment-input-container {
+    gap: 6px;
+  }
+  
+  .comment-input {
+    font-size: 13px;
+    padding: 6px 10px;
+  }
+  
+  .send-comment-btn {
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+  }
+  
+  .comment-avatar {
+    width: 24px;
+    height: 24px;
+    font-size: 10px;
+  }
+  
+  .comment-username {
+    font-size: 13px;
+  }
+  
+  .comment-text {
+    font-size: 13px;
+  }
+  
+  .comment-time {
+    font-size: 11px;
+  }
+  
+  .comments-list {
+    max-height: 250px;
+  }
+  
+  .comment-item {
+    padding: 8px 0;
+  }
+  
+  .comment-menu-dropdown {
+    min-width: 100px;
+  }
+  
+  .comment-menu-item {
+    padding: 6px 10px;
+    font-size: 13px;
+  }
 }
 
 .comment-input {
