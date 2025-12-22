@@ -6,7 +6,7 @@ from rest_framework.exceptions import ValidationError
 from django.db.models import Count
 from .models import UserProfile, CompanyProfile
 from .serializers import UserProfileSerializer, CompanyProfileSerializer, PublicUserSerializer, PublicUserProfileSerializer
-from .permissions import IsCompany, IsEmployeeOrEmployer
+from .permissions import IsCompany, IsEmployeeOrEmployer, IsOwnerOrReadOnly
 from accounts.models import User
 
 class BaseProfileView(generics.RetrieveUpdateAPIView):
@@ -31,18 +31,33 @@ class BaseProfileView(generics.RetrieveUpdateAPIView):
 
 class UserProfileView(BaseProfileView):
     serializer_class = UserProfileSerializer
-    permission_classes = [IsAuthenticated, IsEmployeeOrEmployer]
+    permission_classes = [IsAuthenticated]
     
     def get_object(self):
+        # Allow access for Employee, Employer, and Company users to user profile
         profile, _ = UserProfile.objects.get_or_create(user=self.request.user)
         return profile
 
 class CompanyProfileView(BaseProfileView):
     serializer_class = CompanyProfileSerializer
-    permission_classes = [IsAuthenticated, IsCompany]
+    permission_classes = [IsAuthenticated]
     
     def get_object(self):
-        profile, _ = CompanyProfile.objects.get_or_create(user=self.request.user)
+        # Allow access for Company users to company profile
+        if self.request.user.job_role != 'Company':
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied("Only company users can access company profiles")
+        
+        # Create profile with default values if it doesn't exist
+        profile, created = CompanyProfile.objects.get_or_create(
+            user=self.request.user,
+            defaults={
+                'company_name': f"{self.request.user.first_name} {self.request.user.last_name}".strip(),
+                'company_email': self.request.user.email,
+                'company_phone': '',
+                'company_address': ''
+            }
+        )
         return profile
 class PublicUserListAPIView(generics.ListAPIView):
     permission_classes = [permissions.AllowAny]

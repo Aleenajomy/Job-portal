@@ -4,7 +4,7 @@ import { networkService } from '../../services/networkService.js';
 import './ConnectionsCount.css';
 
 export default function ConnectionsCount({ showLabel = true, size = 'medium', detailed = false }) {
-  const [stats, setStats] = useState({ total: 0, following: 0, followers: 0 });
+  const [stats, setStats] = useState({ following: 0, followers: 0 });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -15,7 +15,6 @@ export default function ConnectionsCount({ showLabel = true, size = 'medium', de
     try {
       const response = await networkService.getNetworkStats();
       setStats({
-        total: response.total_connections,
         following: response.following_count,
         followers: response.followers_count
       });
@@ -28,28 +27,29 @@ export default function ConnectionsCount({ showLabel = true, size = 'medium', de
 
   if (loading) {
     return (
-      <div className={`connections-count ${size}`}>
-        <MdGroup className="connections-icon" />
-        <span className="connections-number">...</span>
-        {showLabel && <span className="connections-label">Connections</span>}
+      <div className="connections-loading">
+        <div className="stat-item">
+          <span className="stat-number">...</span>
+          <span className="stat-label">Followers</span>
+        </div>
+        <div className="stat-item">
+          <span className="stat-number">...</span>
+          <span className="stat-label">Following</span>
+        </div>
       </div>
     );
   }
 
   if (detailed) {
     return (
-      <div className="connections-detailed">
-        <div className="stat">
-          <span className="count">{stats.followers}</span>
-          <span className="label">Followers</span>
+      <div className="profile-stats">
+        <div className="stat-item">
+          <span className="stat-number">{stats.followers}</span>
+          <span className="stat-label">Followers</span>
         </div>
-        <div className="stat">
-          <span className="count">{stats.following}</span>
-          <span className="label">Following</span>
-        </div>
-        <div className="stat total">
-          <span className="count">{stats.total}</span>
-          <span className="label">Total Connections</span>
+        <div className="stat-item">
+          <span className="stat-number">{stats.following}</span>
+          <span className="stat-label">Following</span>
         </div>
       </div>
     );
@@ -58,7 +58,7 @@ export default function ConnectionsCount({ showLabel = true, size = 'medium', de
   return (
     <div className={`connections-count ${size}`}>
       <MdGroup className="connections-icon" />
-      <span className="connections-number">{stats.total}</span>
+      <span className="connections-number">{stats.followers + stats.following}</span>
       {showLabel && <span className="connections-label">Connections</span>}
     </div>
   );

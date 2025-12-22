@@ -6,6 +6,7 @@ import ForgotPasswordForm from "./ForgotPassword/ForgotPasswordForm";
 import OTPVerification from "./OTPVerification/OTPVerification";
 import ResetPasswordForm from "./ResetPassword/ResetPasswordForm";
 import ChangePasswordForm from "./ChangePassword/ChangePasswordForm";
+import ChangePasswordModal from "./ChangePassword/ChangePasswordModal";
 
 import NewHome from "../Home/NewHome";
 
@@ -15,6 +16,7 @@ export default function Auth() {
   const [userEmail, setUserEmail] = useState('');
   const [userName, setUserName] = useState('');
   const [jobRole, setJobRole] = useState('');
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -102,14 +104,13 @@ export default function Auth() {
 
   const validate = () => {
     const errs = {};
-    const currentForm = currentView === 'forgot' ? forgotPasswordForm : currentView === 'signup' ? signupForm : currentView === 'reset' ? resetPasswordForm : currentView === 'change' ? changePasswordForm : loginForm;
+    const currentForm = currentView === 'forgot' ? forgotPasswordForm : currentView === 'signup' ? signupForm : currentView === 'reset' ? resetPasswordForm : loginForm;
     
     if (currentView === 'signup' && !currentForm.firstName?.trim()) errs.firstName = "First name is required";
-    if (currentView !== 'reset' && currentView !== 'change' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(currentForm.email)) errs.email = "Enter a valid email";
-    if ((currentView === 'reset' || currentView === 'change') && currentForm.newPassword.length < 6) errs.newPassword = "Password must be at least 6 characters";
-    if ((currentView === 'reset' || currentView === 'change') && currentForm.newPassword !== currentForm.confirmPassword) errs.confirmPassword = "Passwords do not match";
-    if (currentView === 'change' && (!currentForm.currentPassword || currentForm.currentPassword.length < 6)) errs.currentPassword = "Current password is required";
-    if (currentView !== 'forgot' && currentView !== 'reset' && currentView !== 'change' && (!currentForm.password || currentForm.password.length < 6)) errs.password = "Password must be at least 6 characters";
+    if (currentView !== 'reset' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(currentForm.email)) errs.email = "Enter a valid email";
+    if (currentView === 'reset' && currentForm.newPassword.length < 6) errs.newPassword = "Password must be at least 6 characters";
+    if (currentView === 'reset' && currentForm.newPassword !== currentForm.confirmPassword) errs.confirmPassword = "Passwords do not match";
+    if (currentView !== 'forgot' && currentView !== 'reset' && (!currentForm.password || currentForm.password.length < 6)) errs.password = "Password must be at least 6 characters";
     if (currentView === 'signup' && currentForm.password !== currentForm.confirm) errs.confirm = "Passwords do not match";
     if (currentView === 'signup' && !currentForm.job_role) errs.job_role = "Job role is required";
     if (currentView === 'signup' && !currentForm.agree) errs.agree = "You must agree to the terms";
@@ -122,7 +123,7 @@ export default function Auth() {
     e.preventDefault();
     if (!validate()) return;
     
-    const currentForm = currentView === 'forgot' ? forgotPasswordForm : currentView === 'signup' ? signupForm : currentView === 'reset' ? resetPasswordForm : currentView === 'change' ? changePasswordForm : loginForm;
+    const currentForm = currentView === 'forgot' ? forgotPasswordForm : currentView === 'signup' ? signupForm : currentView === 'reset' ? resetPasswordForm : loginForm;
     
     if (currentView === 'forgot') {
       try {
@@ -221,47 +222,6 @@ export default function Auth() {
       } catch (error) {
         alert('Password reset failed. Please try again.');
         setErrors({ general: 'Password reset failed. Please try again.' });
-      }
-    } else if (currentView === 'change') {
-      try {
-        const token = localStorage.getItem('token');
-        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/accounts/change-password/`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({
-            current_password: currentForm.currentPassword,
-            new_password: currentForm.newPassword,
-            confirm_password: currentForm.confirmPassword
-          })
-        });
-        
-        if (response.ok) {
-          alert('Password changed successfully!');
-          setCurrentView('home');
-          setChangePasswordForm({
-            currentPassword: "",
-            newPassword: "",
-            confirmPassword: "",
-          });
-          setErrors({});
-        } else {
-          const errorData = await response.json();
-          let errorMessage = 'Password change failed. Please try again.';
-          if (errorData.message && typeof errorData.message === 'string') {
-            errorMessage = errorData.message;
-          } else if (errorData.detail) {
-            errorMessage = errorData.detail;
-          }
-          
-          alert(errorMessage);
-          setErrors({ general: errorMessage });
-        }
-      } catch (error) {
-        alert('Password change failed. Please try again.');
-        setErrors({ general: 'Password change failed. Please try again.' });
       }
     } else {
       try {
@@ -365,11 +325,54 @@ export default function Auth() {
   };
 
   const handleChangePassword = () => {
-    setCurrentView('change');
+    setShowChangePasswordModal(true);
+  };
+
+  const handleChangePasswordSubmit = async (formData) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/accounts/change-password/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          current_password: formData.currentPassword,
+          new_password: formData.newPassword,
+          confirm_password: formData.confirmPassword
+        })
+      });
+      
+      if (response.ok) {
+        alert('Password changed successfully!');
+        return Promise.resolve();
+      } else {
+        const errorData = await response.json();
+        let errorMessage = 'Password change failed. Please try again.';
+        if (errorData.message && typeof errorData.message === 'string') {
+          errorMessage = errorData.message;
+        } else if (errorData.detail) {
+          errorMessage = errorData.detail;
+        }
+        throw new Error(errorMessage);
+      }
+    } catch (error) {
+      throw new Error(error.message || 'Password change failed. Please try again.');
+    }
   };
 
   if (isLoggedIn && currentView !== 'change') {
-    return <NewHome onLogout={handleLogout} onChangePassword={handleChangePassword} userEmail={userEmail} userName={userName} jobRole={jobRole} />;
+    return (
+      <>
+        <NewHome onLogout={handleLogout} onChangePassword={handleChangePassword} userEmail={userEmail} userName={userName} jobRole={jobRole} />
+        <ChangePasswordModal 
+          isOpen={showChangePasswordModal}
+          onClose={() => setShowChangePasswordModal(false)}
+          onSubmit={handleChangePasswordSubmit}
+        />
+      </>
+    );
   }
 
   if (currentView === 'otp') {
@@ -396,13 +399,13 @@ export default function Auth() {
 
   return (
     <div className="auth-screen">
-      {(currentView === 'forgot' || currentView === 'reset' || currentView === 'change') && (
+      {(currentView === 'forgot' || currentView === 'reset') && (
         <button className="back-btn" onClick={() => setCurrentView('login')}>
           ←
         </button>
       )}
       
-      {(currentView !== 'forgot' && currentView !== 'reset' && currentView !== 'change') && (
+      {(currentView !== 'forgot' && currentView !== 'reset') && (
         <div className="logo-container">
           <h1 className="logo">Logo</h1>
         </div>
@@ -411,7 +414,7 @@ export default function Auth() {
       <div className="auth-container">
         <div className="card">
           
-          {(currentView !== 'forgot' && currentView !== 'reset' && currentView !== 'change') && (
+          {(currentView !== 'forgot' && currentView !== 'reset') && (
             <div className="tab-row">
               <button 
                 className={`tab ${currentView === 'login' ? "active-tab" : ""}`}
@@ -448,15 +451,6 @@ export default function Auth() {
                 handleChange={handleResetPasswordChange}
                 handleSubmit={handleSubmit}
               />
-            ) : currentView === 'change' ? (
-              <ChangePasswordForm
-                form={changePasswordForm}
-                errors={errors}
-                showPassword={showChangePassword}
-                setShowPassword={setShowChangePassword}
-                handleChange={handleChangePasswordChange}
-                handleSubmit={handleSubmit}
-              />
             ) : currentView === 'signup' ? (
               <SignUpForm 
                 form={signupForm}
@@ -478,7 +472,7 @@ export default function Auth() {
               />
             )}
 
-            {(currentView !== 'forgot' && currentView !== 'reset' && currentView !== 'change') && (
+            {(currentView !== 'forgot' && currentView !== 'reset') && (
               <>
                 <div className="or-line">Or {currentView === 'signup' ? "Sign Up" : "Login"} With</div>
                 <div className="social-row">

@@ -305,13 +305,25 @@ class ApplicationListSerializer(serializers.ModelSerializer):
 class ApplicationDetailSerializer(serializers.ModelSerializer):
     job = JobPostDetailSerializer(read_only=True)
     resume_url = serializers.SerializerMethodField()
+    profile_image = serializers.SerializerMethodField()
     
     class Meta:
         model = JobApplication
-        fields = ['id', 'job', 'applicant', 'applicant_name', 'applicant_email', 'resume_url', 'cover_letter', 'applied_at']
+        fields = ['id', 'job', 'applicant', 'applicant_name', 'applicant_email', 'resume_url', 'profile_image', 'cover_letter', 'applied_at']
     
     def get_resume_url(self, obj):
         return obj.resume.url if obj.resume else None
+    
+    def get_profile_image(self, obj):
+        try:
+            request = self.context.get('request')
+            if hasattr(obj.applicant, 'userprofile') and obj.applicant.userprofile.profile_image:
+                if request:
+                    return request.build_absolute_uri(obj.applicant.userprofile.profile_image.url)
+                return obj.applicant.userprofile.profile_image.url
+        except (AttributeError, ValueError):
+            pass
+        return None
 
 class ApplicantSerializer(serializers.ModelSerializer):
     resume_url = serializers.SerializerMethodField()

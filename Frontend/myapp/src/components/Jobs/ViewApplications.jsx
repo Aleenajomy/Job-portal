@@ -11,6 +11,18 @@ export default function ViewApplications({ jobId, jobTitle, onBack, onViewApplic
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedApplicant, setSelectedApplicant] = useState(null);
+  const [updating, setUpdating] = useState(false);
+
+  const getStatusIcon = (status) => {
+    const icons = {
+      submitted: <IoMdClipboard />,
+      reviewing: <MdOutlineRateReview />,
+      shortlisted: <FaCheckCircle />,
+      rejected: <FaTimesCircle />,
+      hired: <BsPersonCheckFill />
+    };
+    return icons[status] || <IoMdClipboard />;
+  };
 
   useEffect(() => {
     fetchApplicants();
@@ -18,7 +30,8 @@ export default function ViewApplications({ jobId, jobTitle, onBack, onViewApplic
 
   const fetchApplicants = async () => {
     try {
-      const url = `${import.meta.env.VITE_API_BASE_URL}/api/jobs/${jobId}/applicants/${statusFilter !== 'all' ? `?status=${statusFilter}` : ''}`;
+      const baseUrl = `${import.meta.env.VITE_API_BASE_URL}/api/jobs/${jobId}/applicants/`;
+      const url = statusFilter !== 'all' ? `${baseUrl}?status=${statusFilter}` : baseUrl;
       const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -39,20 +52,29 @@ export default function ViewApplications({ jobId, jobTitle, onBack, onViewApplic
 
   const updateStatus = async (applicationId, newStatus) => {
     try {
+      const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || 
+                       localStorage.getItem('csrfToken') || 
+                       sessionStorage.getItem('csrfToken');
+      
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/applications/${applicationId}/status/`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken
         },
         body: JSON.stringify({ status: newStatus })
       });
       
-      if (!response.ok) throw new Error('Failed to update status');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `Failed to update status (${response.status})`);
+      }
       
       fetchApplicants(); // Refresh list
     } catch (error) {
-      alert('Failed to update application status');
+      console.error('Error updating application status:', error);
+      alert(error.message || 'Failed to update application status');
     }
   };
 
@@ -88,11 +110,7 @@ export default function ViewApplications({ jobId, jobTitle, onBack, onViewApplic
                 <div className="item-header">
                   <h4 className="item-title">{applicant.applicant_name}</h4>
                   <span className={`status-badge status-${applicant.status}`}>
-                    {applicant.status === 'submitted' &&  <IoMdClipboard />}
-                    {applicant.status === 'reviewing' && <MdOutlineRateReview />}
-                    {applicant.status === 'shortlisted' && <FaCheckCircle />}
-                    {applicant.status === 'rejected' && <FaTimesCircle />}
-                    {applicant.status === 'hired' && <BsPersonCheckFill />}
+                    {getStatusIcon(applicant.status)}
                   </span>
                 </div>
                 <p className="item-email">{applicant.applicant_email}</p>
@@ -131,11 +149,7 @@ export default function ViewApplications({ jobId, jobTitle, onBack, onViewApplic
                 <h3>Application Status</h3>
                 <div className={`current-status status-${selectedApplicant.status}`}>
                   <span className="status-icon">
-                    {selectedApplicant.status === 'submitted' && <IoMdClipboard />}
-                    {selectedApplicant.status === 'reviewing' && <MdOutlineRateReview />}
-                    {selectedApplicant.status === 'shortlisted' && <FaCheckCircle />}
-                    {selectedApplicant.status === 'rejected' && <FaTimesCircle />}
-                    {selectedApplicant.status === 'hired' && <BsPersonCheckFill />}
+                    {getStatusIcon(selectedApplicant.status)}
                   </span>
                   <span className="status-text">{selectedApplicant.status}</span>
                 </div>

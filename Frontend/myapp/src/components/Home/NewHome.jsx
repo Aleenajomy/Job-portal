@@ -10,6 +10,7 @@ import ImageSlider from '../Posts/ImageSlider';
 import PostCard from '../Posts/PostCard';
 import MyNetwork from '../Network/MyNetwork';
 import { ConnectionsCount } from '../Network';
+import { Profile } from '../Profile';
 import { networkService } from '../../services/networkService';
 import { postService } from '../../services/postService';
 import { AiOutlineTeam, AiOutlineHome, AiOutlineUser, AiOutlineLike, AiOutlineComment, AiFillLike } from "react-icons/ai";
@@ -44,6 +45,7 @@ export default function NewHome({ onLogout, onChangePassword, userEmail, userNam
   const [error, setError] = useState(null);
   const [showMobileNav, setShowMobileNav] = useState(false);
   const [connectionStatsKey, setConnectionStatsKey] = useState(0);
+  const [userProfileImage, setUserProfileImage] = useState(null);
 
   // Load posts from API
   const loadPosts = async () => {
@@ -68,7 +70,34 @@ export default function NewHome({ onLogout, onChangePassword, userEmail, userNam
 
   useEffect(() => {
     loadPosts();
+    fetchUserProfile();
   }, [currentView]);
+
+  const fetchUserProfile = async () => {
+    try {
+      const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+      const url = currentUser?.job_role === 'Company' 
+        ? `${API_BASE_URL}/profiles/company-profile/`
+        : `${API_BASE_URL}/profiles/user-profile/`;
+        
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      if (response.ok) {
+        const profile = await response.json();
+        // For company users, check both company_logo and profile_image
+        const profileImage = currentUser?.job_role === 'Company' 
+          ? (profile.company_logo || profile.profile_image)
+          : profile.profile_image;
+        setUserProfileImage(profileImage);
+      }
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+    }
+  };
 
   const handleLogout = () => {
     Object.values(STORAGE_KEYS).forEach(key => localStorage.removeItem(key));
@@ -230,23 +259,23 @@ export default function NewHome({ onLogout, onChangePassword, userEmail, userNam
         <div className="header-left">
           <div className="logo">JobPortal</div>
           <nav className="nav-icons">
-            <button className="nav-icon-btn" onClick={() => setCurrentView('home')}>
+            <button className="nav-icon-btn" onClick={() => { setCurrentView('home'); setShowProfile(false); }}>
               <AiOutlineHome size={20} />
               <span>Home</span>
             </button>
-            <button className="nav-icon-btn" onClick={() => setCurrentView('network')}>
+            <button className="nav-icon-btn" onClick={() => { setCurrentView('network'); setShowProfile(false); }}>
               <AiOutlineTeam size={20} />
               <span>Network</span>
             </button>
-            <button className="nav-icon-btn" onClick={() => setCurrentView('jobs')}>
+            <button className="nav-icon-btn" onClick={() => { setCurrentView('jobs'); setShowProfile(false); }}>
               <MdWork size={20} />
               <span>Jobs</span>
             </button>
-            <button className="nav-icon-btn" onClick={() => setCurrentView('posts')}>
+            <button className="nav-icon-btn" onClick={() => { setCurrentView('posts'); setShowProfile(false); }}>
               <MdPostAdd size={20} />
               <span>Posts</span>
             </button>
-            <button className="nav-icon-btn">
+            <button className="nav-icon-btn" onClick={() => setShowProfile(false)}>
               <CiBellOn size={20} />
               <span>Notifications</span>
             </button>
@@ -258,11 +287,11 @@ export default function NewHome({ onLogout, onChangePassword, userEmail, userNam
           </button>
         </div>
         <div className="header-right">
-          <button className="nav-icon-btn" onClick={() => setShowProfile(true)}>
+          <button className="nav-icon-btn" onClick={() => { setShowProfile(true); setCurrentView('home'); }}>
             <AiOutlineUser size={20} />
             <span>Profile</span>
           </button>
-          <button className="nav-icon-btn" onClick={onChangePassword}>
+          <button className="nav-icon-btn" onClick={() => { onChangePassword(); setShowProfile(false); }}>
             <IoSettingsOutline size={20} />
             <span>ChangePassword</span>
           </button>
@@ -275,31 +304,31 @@ export default function NewHome({ onLogout, onChangePassword, userEmail, userNam
 
       <div className={`mobile-nav ${showMobileNav ? 'open' : ''}`}>
         <div className="mobile-nav-grid">
-          <button className="mobile-nav-btn" onClick={() => { setCurrentView('home'); setShowMobileNav(false); }}>
+          <button className="mobile-nav-btn" onClick={() => { setCurrentView('home'); setShowProfile(false); setShowMobileNav(false); }}>
             <AiOutlineHome size={24} />
             <span>Home</span>
           </button>
-          <button className="mobile-nav-btn" onClick={() => { setCurrentView('network'); setShowMobileNav(false); }}>
+          <button className="mobile-nav-btn" onClick={() => { setCurrentView('network'); setShowProfile(false); setShowMobileNav(false); }}>
             <AiOutlineTeam size={24} />
             <span>Network</span>
           </button>
-          <button className="mobile-nav-btn" onClick={() => { setCurrentView('jobs'); setShowMobileNav(false); }}>
+          <button className="mobile-nav-btn" onClick={() => { setCurrentView('jobs'); setShowProfile(false); setShowMobileNav(false); }}>
             <MdWork size={24} />
             <span>Jobs</span>
           </button>
-          <button className="mobile-nav-btn" onClick={() => { setCurrentView('posts'); setShowMobileNav(false); }}>
+          <button className="mobile-nav-btn" onClick={() => { setCurrentView('posts'); setShowProfile(false); setShowMobileNav(false); }}>
             <MdPostAdd size={24} />
             <span>Posts</span>
           </button>
-          <button className="mobile-nav-btn" onClick={() => setShowMobileNav(false)}>
+          <button className="mobile-nav-btn" onClick={() => { setShowProfile(false); setShowMobileNav(false); }}>
             <CiBellOn size={24} />
             <span>Notifications</span>
           </button>
-          <button className="mobile-nav-btn" onClick={() => { setShowProfile(true); setShowMobileNav(false); }}>
+          <button className="mobile-nav-btn" onClick={() => { setShowProfile(true); setCurrentView('home'); setShowMobileNav(false); }}>
             <AiOutlineUser size={24} />
             <span>Profile</span>
           </button>
-          <button className="mobile-nav-btn" onClick={() => { onChangePassword(); setShowMobileNav(false); }}>
+          <button className="mobile-nav-btn" onClick={() => { onChangePassword(); setShowProfile(false); setShowMobileNav(false); }}>
             <IoSettingsOutline size={24} />
             <span>Settings</span>
           </button>
@@ -312,19 +341,7 @@ export default function NewHome({ onLogout, onChangePassword, userEmail, userNam
 
       {showProfile ? (
         <div className="profile-page">
-          <button className="back-btn" onClick={() => setShowProfile(false)}>
-            ←
-          </button>
-          <div className="profile-content">
-            <div className="profile-avatar-large">
-              {(userName || userEmail).charAt(0).toUpperCase()}
-            </div>
-            <div className="profile-details">
-              <p>{userName || userEmail.split('@')[0]}</p>
-              <p>{userEmail}</p>
-              <p>{jobRole || 'Job Seeker'}</p>
-            </div>
-          </div>
+          <Profile />
         </div>
       ) : currentView === 'jobs' ? (
         <JobList 
@@ -430,7 +447,20 @@ export default function NewHome({ onLogout, onChangePassword, userEmail, userNam
             <div className="profile-card">
               <div className="profile-header">
                 <div className="profile-photo">
-                  {(userName || userEmail).charAt(0).toUpperCase()}
+                  {userProfileImage ? (
+                    <img 
+                      src={userProfileImage.startsWith('http') ? userProfileImage : `http://localhost:8000${userProfileImage}`}
+                      alt="Profile"
+                      className="profile-image"
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                        e.target.nextSibling.style.display = 'flex';
+                      }}
+                    />
+                  ) : null}
+                  <div className="profile-initials" style={{ display: userProfileImage ? 'none' : 'flex' }}>
+                    {(userName || userEmail).charAt(0).toUpperCase()}
+                  </div>
                 </div>
                 <div className="profile-info">
                   <h3>{userName || userEmail.split('@')[0]}</h3>

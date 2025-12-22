@@ -52,11 +52,32 @@ export default function PostCard({
     <div className="post-card">
       <div className="post-header">
         <div className="post-author-info">
-          <div className="post-avatar">
-            {(post.author_name || 'U').charAt(0).toUpperCase()}
+          <div 
+            className="post-avatar clickable" 
+            onClick={() => window.open(`/profile/${post.author_id}/public`, '_blank')}
+          >
+            {post.author_profile_image ? (
+              <img 
+                src={post.author_profile_image.startsWith('http') ? post.author_profile_image : `http://localhost:8000${post.author_profile_image}`}
+                alt={post.author_name}
+                className="profile-image"
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                  e.target.nextSibling.style.display = 'flex';
+                }}
+              />
+            ) : null}
+            <div className="avatar-fallback" style={{ display: post.author_profile_image ? 'none' : 'flex' }}>
+              {(post.author_name || 'U').charAt(0).toUpperCase()}
+            </div>
           </div>
           <div className="post-details">
-            <h4>{post.author_name || 'Unknown User'}</h4>
+            <h4 
+              className="clickable-name"
+              onClick={() => window.open(`/profile/${post.author_id}/public`, '_blank')}
+            >
+              {post.author_name || 'Unknown User'}
+            </h4>
             <p>{isCurrentUserPost(post) ? 'You' : (post.author_role || 'User')}</p>
             <span>{formatTimestamp(post.created_at)}</span>
           </div>

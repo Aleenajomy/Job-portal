@@ -5,25 +5,44 @@ import { MdLocationOn, MdAttachMoney, MdWork } from 'react-icons/md';
 export default function ApplicantDetail({ applicationId, onBack }) {
   const [application, setApplication] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const formatStatus = (status) => {
+    return status ? status.charAt(0).toUpperCase() + status.slice(1) : 'Submitted';
+  };
+
+  const getAvatarUrl = (name) => {
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=0a66c2&color=fff&size=140`;
+  };
 
   useEffect(() => {
-    fetchApplicationDetail();
+    if (applicationId) {
+      fetchApplicationDetail();
+    } else {
+      setError('Invalid application ID');
+      setLoading(false);
+    }
   }, [applicationId]);
 
   const fetchApplicationDetail = async () => {
     try {
+      setError(null);
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/applications/${applicationId}/`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       });
       
-      if (!response.ok) throw new Error('Failed to fetch application details');
+      if (!response.ok) {
+        const errorMessage = response.status === 404 ? 'Application not found' : 'Failed to fetch application details';
+        throw new Error(errorMessage);
+      }
       
       const data = await response.json();
       setApplication(data);
     } catch (error) {
       console.error('Error fetching application details:', error);
+      setError(error.message || 'Failed to load application details');
     } finally {
       setLoading(false);
     }
@@ -31,11 +50,15 @@ export default function ApplicantDetail({ applicationId, onBack }) {
 
   const updateStatus = async (newStatus) => {
     try {
+      const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || 
+                       localStorage.getItem('csrfToken');
+      
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/applications/${applicationId}/status/`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': csrfToken
         },
         body: JSON.stringify({ status: newStatus })
       });
@@ -51,7 +74,17 @@ export default function ApplicantDetail({ applicationId, onBack }) {
 
   const downloadResume = async (applicationId, applicantName) => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/applications/${applicationId}/resume/download/`, {
+      // Validate applicationId to prevent SSRF
+      if (!applicationId || typeof applicationId !== 'string' && typeof applicationId !== 'number') {
+        throw new Error('Invalid application ID');
+      }
+      
+      const baseUrl = import.meta.env.VITE_API_BASE_URL;
+      if (!baseUrl) {
+        throw new Error('API base URL not configured');
+      }
+      
+      const response = await fetch(`${baseUrl}/api/applications/${applicationId}/resume/download/`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -81,6 +114,7 @@ export default function ApplicantDetail({ applicationId, onBack }) {
   };
 
   if (loading) return <div className="loading">Loading application details...</div>;
+  if (error) return <div className="error">{error}</div>;
   if (!application) return <div className="error">Application not found</div>;
 
   return (
@@ -92,10 +126,7 @@ export default function ApplicantDetail({ applicationId, onBack }) {
           </button>
           <h1>Application Details</h1>
           <span className={`status-badge status-${application.status || 'submitted'}`}>
-            {application.status ? 
-              application.status.charAt(0).toUpperCase() + application.status.slice(1) : 
-              'Submitted'
-            }
+            {formatStatus(application.status)}
           </span>
         </div>
       </div>
@@ -105,16 +136,26 @@ export default function ApplicantDetail({ applicationId, onBack }) {
           <div className="profile-header">
             <div className="profile-avatar">
               <img 
-                src={application.profile_image || '/default-avatar.png'} 
+                src={application.profile_image || getAvatarUrl(application.applicant_name)} 
                 alt={application.applicant_name}
                 onError={(e) => {
-                  e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(application.applicant_name)}&background=0a66c2&color=fff&size=120`;
+                  e.target.src = getAvatarUrl(application.applicant_name);
                 }}
               />
             </div>
             <div className="profile-info">
               <h2 className="applicant-name">{application.applicant_name}</h2>
               <p className="applicant-email">{application.applicant_email}</p>
+              <div className="profile-stats">
+                <div className="stat-item">
+                  <span className="stat-number">1</span>
+                  <span className="stat-label">Application</span>
+                </div>
+                <div className="stat-item">
+                  <span className="stat-number">{formatStatus(application.status)}</span>
+                  <span className="stat-label">Status</span>
+                </div>
+              </div>
               <div className="application-meta">
                 <span className="applied-date">
                   Applied on {new Date(application.applied_at).toLocaleDateString('en-US', { 
@@ -124,10 +165,7 @@ export default function ApplicantDetail({ applicationId, onBack }) {
                   })}
                 </span>
                 <span className={`status-indicator ${application.status || 'submitted'}`}>
-                  {application.status ? 
-                    application.status.charAt(0).toUpperCase() + application.status.slice(1) : 
-                    'Submitted'
-                  }
+                  {formatStatus(application.status)}
                 </span>
               </div>
             </div>
