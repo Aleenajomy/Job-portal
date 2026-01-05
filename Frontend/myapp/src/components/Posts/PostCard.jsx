@@ -25,6 +25,7 @@ export default function PostCard({
 }) {
   const [isFollowing, setIsFollowing] = useState(post.is_following || false);
   const [followLoading, setFollowLoading] = useState(false);
+  const [showComments, setShowComments] = useState(false);
 
   const handleFollow = async () => {
     if (followLoading) return;
@@ -53,8 +54,7 @@ export default function PostCard({
       <div className="post-header">
         <div className="post-author-info">
           <div 
-            className="post-avatar clickable" 
-            onClick={() => window.open(`/profile/${post.author_id}/public`, '_blank')}
+            className="post-avatar" 
           >
             {post.author_profile_image ? (
               <img 
@@ -78,8 +78,11 @@ export default function PostCard({
             >
               {post.author_name || 'Unknown User'}
             </h4>
-            <p>{isCurrentUserPost(post) ? 'You' : (post.author_role || 'User')}</p>
-            <span>{formatTimestamp(post.created_at)}</span>
+            <div className="post-role-date">
+              <p>{isCurrentUserPost(post) ? 'You' : (post.author_role || 'User')}</p>
+              <span>•</span>
+              <span>{formatTimestamp(post.created_at)}</span>
+            </div>
           </div>
         </div>
         {isCurrentUserPost(post) ? (
@@ -142,12 +145,8 @@ export default function PostCard({
                 }}
               />
             ) : (
-              <div className={`image-grid grid-${Math.min(post.images.length, 4)}`}>
-                {post.images.slice(0, 4).map((image, index) => {
-                  const lastIndex = Math.min(post.images.length, 4) - 1;
-                  const showBadge = index === lastIndex;
-                  console.log('Image', index, 'lastIndex:', lastIndex, 'showBadge:', showBadge);
-                  return (
+              <div className={`image-grid ${post.images.length === 1 ? 'grid-1' : 'grid-2'}`}>
+                {post.images.slice(0, 4).map((image, index) => (
                   <div key={index} className="image-container">
                     <img 
                       src={image.image.replace('http://127.0.0.1:8000', 'http://localhost:8000')} 
@@ -164,14 +163,8 @@ export default function PostCard({
                         +{post.images.length - 4}
                       </div>
                     )}
-                    {index === Math.min(post.images.length, 4) - 1 && (
-                      <div className="image-count-badge">
-                        {Math.min(post.images.length, 4)}/{post.images.length}
-                      </div>
-                    )}
                   </div>
-                );
-                })}
+                ))}
               </div>
             )}
           </div>
@@ -185,16 +178,21 @@ export default function PostCard({
           {post.liked_by_current_user ? <AiFillLike size={16} /> : <AiOutlineLike size={16} />}
           Like ({post.likes_count})
         </button>
-        <button className="action-btn">
+        <button 
+          className="action-btn"
+          onClick={() => setShowComments(!showComments)}
+        >
           <AiOutlineComment size={16} />
           Comment ({post.comments_count})
         </button>
       </div>
-      <CommentSection 
-        postId={post.id}
-        commentsCount={post.comments_count}
-        onCommentCountChange={(newCount) => onCommentCountChange(post.id, newCount)}
-      />
+      {showComments && (
+        <CommentSection 
+          postId={post.id}
+          commentsCount={post.comments_count}
+          onCommentCountChange={(newCount) => onCommentCountChange(post.id, newCount)}
+        />
+      )}
     </div>
   );
 }

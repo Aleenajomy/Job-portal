@@ -6,19 +6,19 @@
 
 .network-header {
   max-width: 1200px;
-  margin: 0 auto 32px;
+  margin: 0 auto 12px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   background: white;
-  padding: 24px 32px;
+  padding: 14px 24px;
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
 .network-header h1 {
   color: #333;
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 600;
   margin: 0;
 }

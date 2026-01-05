@@ -19,16 +19,13 @@
 .jobs-header {
   text-align: left;
   margin-bottom: 32px;
-  margin-left: 60px;
 }
 
 .header-content {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
-  margin: 0 0 24px 0;
-  gap: 12px;
+  margin: 0;
 }
 .header-buttons{
   display: flex;
@@ -1090,7 +1087,7 @@
   display: flex;
   justify-content: center;
   gap: 14px;
-  margin: 16px 16px;
+  margin: 1px 1px;
 }
 
 .stat-item {
@@ -1195,13 +1192,7 @@
     margin-bottom: 16px;
   }
   
-  .profile-header {
-    flex-direction: column;
-    text-align: center;
-    gap: 16px;
-  }
-  
-  .applicant-name {
+    .applicant-name {
     font-size: 24px;
   }
   
@@ -1248,9 +1239,8 @@
     padding: 20px;
   }
   
-  .header-content,
-  .management-header {
-    flex-direction: column;
+  .header-content {
+    flex-direction: row;
     gap: 16px;
     align-items: center;
   }
@@ -1591,8 +1581,10 @@
 
 .profile-header {
   display: flex;
-  gap: 32px;
-  align-items: flex-start;
+  flex-direction: column;
+  gap: 18px;
+  align-items: center;
+  text-align: center;
 }
 
 .profile-avatar {
@@ -1613,6 +1605,8 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
+  align-items: center;
+  text-align: center;
 }
 
 .applicant-name {
@@ -1634,6 +1628,7 @@
 .application-meta {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 20px;
   flex-wrap: wrap;
 }
@@ -1954,11 +1949,7 @@
     padding: 20px 16px;
   }
   
-  .profile-header {
-    flex-direction: column;
-    text-align: center;
-    gap: 20px;
-  }
+ 
   
   .profile-avatar img {
     width: 120px;

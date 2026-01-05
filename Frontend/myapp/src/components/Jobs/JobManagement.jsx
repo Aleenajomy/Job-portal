@@ -3,7 +3,6 @@ import './Jobs.css';
 import './JobManagement.css';
 import { jobAPI } from '../../utils/api';
 import ViewApplications from './ViewApplications';
-import ApplicantDetail from './ApplicantDetail';
 import { MdDeleteOutline, MdLocationOn, MdWork, MdAttachMoney, MdLanguage, MdCheckCircle, MdPause } from "react-icons/md";
 import { CiEdit } from "react-icons/ci";
 
@@ -11,7 +10,6 @@ export default function JobManagement({ userRole, onBack, jobs, setJobs }) {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingJob, setEditingJob] = useState(null);
   const [viewingApplications, setViewingApplications] = useState(null);
-  const [viewingApplicant, setViewingApplicant] = useState(null);
   const [selectedJob, setSelectedJob] = useState(null);
   const [formData, setFormData] = useState({
     title: '',
@@ -197,22 +195,12 @@ export default function JobManagement({ userRole, onBack, jobs, setJobs }) {
     setShowCreateForm(false);
   };
 
-  if (viewingApplicant) {
-    return (
-      <ApplicantDetail 
-        applicationId={viewingApplicant}
-        onBack={() => setViewingApplicant(null)}
-      />
-    );
-  }
-
   if (viewingApplications) {
     return (
       <ViewApplications 
         jobId={viewingApplications.id}
         jobTitle={viewingApplications.title}
         onBack={() => setViewingApplications(null)}
-        onViewApplicant={(applicationId) => setViewingApplicant(applicationId)}
       />
     );
   }

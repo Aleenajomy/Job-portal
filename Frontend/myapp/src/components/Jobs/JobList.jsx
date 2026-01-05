@@ -6,7 +6,7 @@ import { MdWork, MdAccessTime, MdSchool, MdCheckCircle, MdBusiness, MdLocationOn
 
 
 
-export default function JobList({ onJobClick, onBack, userRole, onManageJobs, onMyApplications, refreshTrigger }) {
+export default function JobList({ onJobClick, userRole, onManageJobs, onMyApplications, refreshTrigger }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [jobs, setJobs] = useState([]);
@@ -43,9 +43,6 @@ export default function JobList({ onJobClick, onBack, userRole, onManageJobs, on
 
   return (
     <div className="jobs-container">
-      <button className="back-btn" onClick={onBack}>
-        ←
-      </button>
       <div className="jobs-header">
         <div className="header-content">
           <h1>Available Jobs</h1>

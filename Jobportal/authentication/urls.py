@@ -26,6 +26,7 @@ urlpatterns = [
     path('api/', include('job_post.urls')),
     path('api-post/', include('posts.urls')),
     path('api-follows/', include('follows.urls')),
+    path('api/notifications/', include('notifications.urls')),
 ]
 
 if settings.DEBUG:

@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     'job_post',
     'posts',
     'follows',
+    'notifications',
     'corsheaders',
 ]
 

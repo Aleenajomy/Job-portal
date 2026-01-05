@@ -8,7 +8,6 @@ import './CommentSection.css';
 export default function CommentSection({ postId, commentsCount, onCommentCountChange }) {
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
-  const [showComments, setShowComments] = useState(false);
   const [loading, setLoading] = useState(false);
   const [editingComment, setEditingComment] = useState(null);
   const [editText, setEditText] = useState('');
@@ -16,8 +15,6 @@ export default function CommentSection({ postId, commentsCount, onCommentCountCh
   const currentUser = localStorage.getItem(STORAGE_KEYS.USER_NAME) || localStorage.getItem(STORAGE_KEYS.USER_EMAIL);
 
   const loadComments = async () => {
-    if (!showComments) return;
-    
     setLoading(true);
     try {
       const commentsData = await postService.getComments(postId);
@@ -31,7 +28,7 @@ export default function CommentSection({ postId, commentsCount, onCommentCountCh
 
   useEffect(() => {
     loadComments();
-  }, [showComments, postId]);
+  }, [postId]);
 
   const handleAddComment = async (e) => {
     e.preventDefault();
@@ -89,39 +86,30 @@ export default function CommentSection({ postId, commentsCount, onCommentCountCh
 
   return (
     <div className="comment-section">
-      <button 
-        className="toggle-comments-btn"
-        onClick={() => setShowComments(!showComments)}
-      >
-        {showComments ? 'Hide' : 'View'} Comments ({commentsCount})
-      </button>
+      <form onSubmit={handleAddComment} className="add-comment-form">
+        <div className="comment-input-container">
+          <input
+            type="text"
+            value={newComment}
+            onChange={(e) => setNewComment(e.target.value)}
+            placeholder="Write a comment..."
+            className="comment-input"
+          />
+          <button 
+            type="submit" 
+            className="send-comment-btn"
+            disabled={!newComment.trim()}
+          >
+            <AiOutlineSend size={16} />
+          </button>
+        </div>
+      </form>
 
-      {showComments && (
-        <div className="comments-container">
-          <form onSubmit={handleAddComment} className="add-comment-form">
-            <div className="comment-input-container">
-              <input
-                type="text"
-                value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
-                placeholder="Write a comment..."
-                className="comment-input"
-              />
-              <button 
-                type="submit" 
-                className="send-comment-btn"
-                disabled={!newComment.trim()}
-              >
-                <AiOutlineSend size={16} />
-              </button>
-            </div>
-          </form>
-
-          {loading ? (
-            <div className="comments-loading">Loading comments...</div>
-          ) : (
-            <div className="comments-list">
-              {comments.map(comment => (
+      {loading ? (
+        <div className="comments-loading">Loading comments...</div>
+      ) : (
+        <div className="comments-list">
+          {comments.map(comment => (
                 <div key={comment.id} className="comment-item">
                   <div className="comment-header">
                     <div className="comment-author">
@@ -198,11 +186,9 @@ export default function CommentSection({ postId, commentsCount, onCommentCountCh
                   </div>
                 </div>
               ))}
-              
-              {comments.length === 0 && (
-                <div className="no-comments">No comments yet. Be the first to comment!</div>
-              )}
-            </div>
+          
+          {comments.length === 0 && (
+            <div className="no-comments">No comments yet. Be the first to comment!</div>
           )}
         </div>
       )}

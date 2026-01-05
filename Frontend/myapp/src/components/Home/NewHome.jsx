@@ -5,21 +5,17 @@ import JobList from '../Jobs/JobList';
 import JobDetail from '../Jobs/JobDetail';
 import JobManagement from '../Jobs/JobManagement';
 import MyApplications from '../Jobs/MyApplications';
-import CommentSection from '../Posts/CommentSection';
 import ImageSlider from '../Posts/ImageSlider';
 import PostCard from '../Posts/PostCard';
 import MyNetwork from '../Network/MyNetwork';
 import { ConnectionsCount } from '../Network';
 import { Profile } from '../Profile';
-import { networkService } from '../../services/networkService';
+import { NotificationBell, NotificationPage } from '../Notifications';
 import { postService } from '../../services/postService';
-import { AiOutlineTeam, AiOutlineHome, AiOutlineUser, AiOutlineLike, AiOutlineComment, AiFillLike } from "react-icons/ai";
-import { CiBellOn } from "react-icons/ci";
-import { MdPostAdd, MdWork, MdImage, MdClose, MdEdit, MdDelete, MdMoreVert } from "react-icons/md";
+import { AiOutlineTeam, AiOutlineHome, AiOutlineUser, AiOutlineHeart, AiFillHeart } from "react-icons/ai";
+import { MdPostAdd, MdWork, MdImage, MdClose, MdMoreVert, MdComment, MdShare } from "react-icons/md";
 import { IoSettingsOutline, IoLogOutOutline } from "react-icons/io5";
 import { BiText } from "react-icons/bi";
-import { RiUserFollowLine } from "react-icons/ri";
-import Snowfall from 'react-snowfall';
 
 import { apiService } from '../../services/apiService';
 import { STORAGE_KEYS } from '../../constants/index.js';
@@ -28,7 +24,7 @@ const API_BASE_URL = apiService.getBaseUrl();
 
 export default function NewHome({ onLogout, onChangePassword, userEmail, userName, jobRole }) {
   const [showProfile, setShowProfile] = useState(false);
-  const [currentView, setCurrentView] = useState('home'); // 'home', 'jobs', 'jobDetail', 'management', 'myApplications', 'posts', 'network'
+  const [currentView, setCurrentView] = useState('home'); // 'home', 'jobs', 'jobDetail', 'management', 'myApplications', 'posts', 'network', 'notifications'
   const [selectedJob, setSelectedJob] = useState(null);
   const [managedJobs, setManagedJobs] = useState([]);
   const [jobListRefresh, setJobListRefresh] = useState(0);
@@ -46,6 +42,8 @@ export default function NewHome({ onLogout, onChangePassword, userEmail, userNam
   const [showMobileNav, setShowMobileNav] = useState(false);
   const [connectionStatsKey, setConnectionStatsKey] = useState(0);
   const [userProfileImage, setUserProfileImage] = useState(null);
+  const [userBio, setUserBio] = useState('');
+  const [notificationUnreadCount, setNotificationUnreadCount] = useState(0);
 
   // Load posts from API
   const loadPosts = async () => {
@@ -93,9 +91,16 @@ export default function NewHome({ onLogout, onChangePassword, userEmail, userNam
           ? (profile.company_logo || profile.profile_image)
           : profile.profile_image;
         setUserProfileImage(profileImage);
+        
+        // Set bio based on user type
+        const bio = currentUser?.job_role === 'Company' 
+          ? (profile.company_description || profile.bio || 'Leading company in innovation')
+          : (profile.bio || 'Passionate about technology and innovation');
+        setUserBio(bio);
       }
     } catch (error) {
       console.error('Error fetching user profile:', error);
+      setUserBio('Passionate about technology and innovation');
     }
   };
 
@@ -275,10 +280,10 @@ export default function NewHome({ onLogout, onChangePassword, userEmail, userNam
               <MdPostAdd size={20} />
               <span>Posts</span>
             </button>
-            <button className="nav-icon-btn" onClick={() => setShowProfile(false)}>
-              <CiBellOn size={20} />
-              <span>Notifications</span>
-            </button>
+            <NotificationBell 
+              onViewAll={() => { setCurrentView('notifications'); setShowProfile(false); }}
+              onUnreadCountChange={setNotificationUnreadCount}
+            />
           </nav>
           <button className="hamburger-menu" onClick={() => setShowMobileNav(!showMobileNav)}>
             <div className="hamburger-line"></div>
@@ -320,10 +325,12 @@ export default function NewHome({ onLogout, onChangePassword, userEmail, userNam
             <MdPostAdd size={24} />
             <span>Posts</span>
           </button>
-          <button className="mobile-nav-btn" onClick={() => { setShowProfile(false); setShowMobileNav(false); }}>
-            <CiBellOn size={24} />
-            <span>Notifications</span>
-          </button>
+          <div className="mobile-nav-btn" onClick={() => setShowMobileNav(false)}>
+            <NotificationBell 
+              onViewAll={() => { setCurrentView('notifications'); setShowProfile(false); setShowMobileNav(false); }}
+              onUnreadCountChange={setNotificationUnreadCount}
+            />
+          </div>
           <button className="mobile-nav-btn" onClick={() => { setShowProfile(true); setCurrentView('home'); setShowMobileNav(false); }}>
             <AiOutlineUser size={24} />
             <span>Profile</span>
@@ -349,7 +356,6 @@ export default function NewHome({ onLogout, onChangePassword, userEmail, userNam
             setSelectedJob(job);
             setCurrentView('jobDetail');
           }}
-          onBack={() => setCurrentView('home')}
           userRole={jobRole}
           onManageJobs={() => setCurrentView('management')}
           onMyApplications={() => setCurrentView('myApplications')}
@@ -381,11 +387,12 @@ export default function NewHome({ onLogout, onChangePassword, userEmail, userNam
           userName={userName}
           userEmail={userEmail}
         />
+      ) : currentView === 'notifications' ? (
+        <NotificationPage 
+          onUnreadCountChange={setNotificationUnreadCount}
+        />
       ) : currentView === 'posts' ? (
-        <main className="new-home-main">
-          {/* <button className="back-btn" onClick={() => setCurrentView('home')}>
-            ← Back to Home
-          </button> */}
+        <main className="new-home-main posts-page">
           <div className="post-creation-card">
             <div className="post-creator">
               <div className="user-avatar">
@@ -431,21 +438,10 @@ export default function NewHome({ onLogout, onChangePassword, userEmail, userNam
           </div>
         </main>
       ) : (
-        // <div style={{ position: 'relative', height: '100vh' }}>
-        //   <Snowfall
-        //     color="white"
-        //     snowflakeCount={2000}
-        //     style={{
-        //       position: 'absolute',
-        //       width: '100%',
-        //       height: '100%',
-        //     }}
-        //   />
-          
-          <div className="home-layout" >
-            <aside className="sidebar">
-            <div className="profile-card">
-              <div className="profile-header">
+          <div className="linkedin-home">
+            {/* Left Sidebar - Profile Card */}
+            <aside className="left-sidebar">
+              <div className="profile-card glass-card">
                 <div className="profile-photo">
                   {userProfileImage ? (
                     <img 
@@ -463,63 +459,97 @@ export default function NewHome({ onLogout, onChangePassword, userEmail, userNam
                   </div>
                 </div>
                 <div className="profile-info">
-                  <h3>{userName || userEmail.split('@')[0]}</h3>
-                  {/* <p className="role">{jobRole || 'Job Seeker'}</p> */}
-                  <p className="headline">Passionate about technology and innovation</p>
+                  <h3 className="profile-name">{userName || userEmail.split('@')[0]}</h3>
+                  <p className="profile-bio">{userBio}</p>
+                </div>
+                <div className="profile-stats">
+                  <ConnectionsCount detailed={true} key={connectionStatsKey} />
                 </div>
               </div>
-              <div className="profile-stats">
-                <ConnectionsCount detailed={true} key={connectionStatsKey} />
-              </div>
-            </div>
-          </aside>
-          
-          <main className="main-content">
-            <div className="suggestions-header">
-              <h4>Suggested Posts</h4>
-              {/* <p>Discover content from your network</p> */}
-            </div>
+            </aside>
             
-            <div className="posts-feed">
-              {posts.map(post => (
-                <PostCard
-                  key={post.id}
-                  post={post}
-                  isCurrentUserPost={isCurrentUserPost}
-                  showPostMenu={showPostMenu}
-                  onMenuToggle={(postId) => setShowPostMenu(showPostMenu === postId ? null : postId)}
-                  onEdit={handleEditPost}
-                  onDelete={confirmDelete}
-                  onLike={handleLike}
-                  onImageClick={openImageSlider}
-                  onCommentCountChange={handleCommentCountChange}
-                  formatTimestamp={formatTimestamp}
-                  showFollowButton={true}
-                  onFollowAction={() => setConnectionStatsKey(prev => prev + 1)}
-                />
-              ))}
-            </div>
-          </main>
-          
-          <aside className="right-sidebar">
-            <div className="trending-card">
-              <h3>Trending</h3>
-              <div className="trending-item">
-                <p className="trend-title">React Development</p>
-                <span className="trend-posts">1,234 posts</span>
+            {/* Center Feed */}
+            <main className="center-feed">
+              <div className="feed-header">
+                <h2 className="suggested-posts-title">Suggested Posts</h2>
               </div>
-              <div className="trending-item">
-                <p className="trend-title">Remote Work</p>
-                <span className="trend-posts">892 posts</span>
+              
+              <div className="posts-feed">
+                {loading ? (
+                  <div className="loading-state">
+                    <div className="post-card">
+                      <div className="loading-skeleton">
+                        <div className="skeleton-avatar"></div>
+                        <div className="skeleton-content">
+                          <div className="skeleton-line"></div>
+                          <div className="skeleton-line short"></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : error ? (
+                  <div className="error-state">
+                    <div className="post-card">
+                      <p style={{ color: '#ef4444', textAlign: 'center' }}>{error}</p>
+                    </div>
+                  </div>
+                ) : posts.length === 0 ? (
+                  <div className="empty-state">
+                    <div className="post-card">
+                      <p style={{ color: '#64748b', textAlign: 'center' }}>No posts available</p>
+                    </div>
+                  </div>
+                ) : (
+                  posts.map(post => (
+                    <PostCard
+                      key={post.id}
+                      post={post}
+                      isCurrentUserPost={isCurrentUserPost}
+                      showPostMenu={showPostMenu}
+                      onMenuToggle={(postId) => setShowPostMenu(showPostMenu === postId ? null : postId)}
+                      onEdit={handleEditPost}
+                      onDelete={confirmDelete}
+                      onLike={handleLike}
+                      onImageClick={openImageSlider}
+                      onCommentCountChange={handleCommentCountChange}
+                      formatTimestamp={formatTimestamp}
+                      showFollowButton={true}
+                      onFollowAction={() => setConnectionStatsKey(prev => prev + 1)}
+                    />
+                  ))
+                )}
               </div>
-              <div className="trending-item">
-                <p className="trend-title">Tech Jobs</p>
-                <span className="trend-posts">567 posts</span>
+            </main>
+            
+            {/* Right Sidebar - Trending */}
+            <aside className="right-sidebar">
+              <div className="trending-card glass-card">
+                <h3 className="trending-title">Trending</h3>
+                <div className="trending-list">
+                  <div className="trending-item">
+                    <p className="trend-topic">React Development</p>
+                    <span className="trend-count">1,234 posts</span>
+                  </div>
+                  <div className="trending-item">
+                    <p className="trend-topic">Remote Work</p>
+                    <span className="trend-count">892 posts</span>
+                  </div>
+                  <div className="trending-item">
+                    <p className="trend-topic">Tech Jobs</p>
+                    <span className="trend-count">567 posts</span>
+                  </div>
+                  {/* <div className="trending-item">
+                    <p className="trend-topic">Full Stack Development</p>
+                    <span className="trend-count">445 posts</span>
+                  </div>
+                  <div className="trending-item">
+                    <p className="trend-topic">AI & Machine Learning</p>
+                    <span className="trend-count">332 posts</span>
+                  </div> */}
+                </div>
               </div>
-            </div>
-          </aside>
-         
-        </div>
+            </aside>
+          </div>
       )}
       
       {showPostModal && (
@@ -573,17 +603,17 @@ export default function NewHome({ onLogout, onChangePassword, userEmail, userNam
               )}
               
               <div className="modal-actions">
-                <input
-                  type="file"
-                  multiple
-                  accept="image/*"
-                  onChange={handleImageSelect}
-                  style={{ display: 'none' }}
-                  id="image-upload"
-                />
                 <label htmlFor="image-upload" className="upload-btn">
                   <MdImage size={20} />
                   {selectedImages.length > 0 ? 'Add more images' : 'Add images'}
+                  <input
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    onChange={handleImageSelect}
+                    id="image-upload"
+                    style={{ display: 'none' }}
+                  />
                 </label>
                 
                 <button 
