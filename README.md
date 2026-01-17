@@ -295,12 +295,6 @@ const response = await fetch('http://localhost:8000/api/jobs/', {
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
-## 🐛 Known Issues
-
-- File upload size limits may need adjustment for large resumes
-- Email delivery may be slow with Gmail SMTP in development
-- CORS configuration may need updates for production domains
-
 ## 🔮 Future Enhancements
 
 - Real-time chat between employers and candidates
@@ -309,13 +303,6 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - Mobile application development
 - AI-powered job recommendations
 - Video interview scheduling
-
-## 📞 Support
-
-For support and questions:
-- Create an issue in the repository
-- Contact the development team
-- Check the documentation for common solutions
 
 ---
 
