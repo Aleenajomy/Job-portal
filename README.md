@@ -1,166 +1,322 @@
-# Job Portal
+# Job Portal - Full Stack Application
 
-A full-stack Job Portal web application built using **Django REST
-Framework** for the backend and **React (Vite)** for the frontend.
-This platform connects job seekers and employers, offering
-authentication, job management, and social networking features in one
-unified system.
+A comprehensive job portal application built with Django REST Framework backend and React frontend, featuring user authentication, job posting, applications, social features, and notifications.
 
-------------------------------------------------------------------------
+## 🚀 Features
 
-## Project Structure
+### Core Features
+- **Multi-role Authentication**: Employee, Employer, and Company accounts
+- **Job Management**: Create, edit, delete, and search job postings
+- **Application System**: Apply for jobs with resume upload
+- **User Profiles**: Detailed profiles with education, experience, and skills
+- **Social Features**: Follow users, like posts, and notifications
+- **Email Verification**: OTP-based email verification system
 
-``` text
-Job-Portal/
-├── job_portal/          # Django Backend
-│   ├── authentication/  # User authentication app
-│   ├── home/           # User profiles & follow system
-│   ├── jobs/           # Job management app
-│   ├── posts/          # Social posts & comments
-│   ├── media/          # Uploaded files (images, resumes)
-│   └── manage.py       # Django management script
-├── jobportal/          # React Frontend
-│   ├── src/
-│   │   ├── components/ # React components
-│   │   └── services/   # API services
-│   ├── public/         # Static assets
-│   └── package.json    # Frontend dependencies
-└── venv/               # Python virtual environment (excluded from git)
+### User Roles
+- **Employee**: Browse jobs, apply, manage profile, follow companies
+- **Employer**: Post jobs, manage applications, company profile
+- **Company**: Full company profile, job posting, applicant management
+
+## 🛠 Tech Stack
+
+### Backend
+- **Django 5.2.8** - Web framework
+- **Django REST Framework 3.15.2** - API development
+- **JWT Authentication** - Secure token-based auth
+- **PostgreSQL** - Primary database
+- **Python-dotenv** - Environment management
+
+### Frontend
+- **React 19.2.0** - UI framework
+- **Vite** - Build tool and dev server
+- **React Router DOM** - Client-side routing
+- **Lucide React** - Icon library
+- **React Icons** - Additional icons
+
+## 📁 Project Structure
+
+```
+Job_portal/
+├── Backend (Jobportal)/
+│   ├── accounts/          # User authentication & management
+│   ├── profiles/          # User profiles & education
+│   ├── job_post/          # Job posting & applications
+│   ├── posts/             # Social posts & interactions
+│   ├── follows/           # User following system
+│   ├── notifications/     # Notification system
+│   ├── media/             # File uploads (resumes, images)
+│   └── authentication/    # Django project settings
+├── Frontend/
+│   └── myapp/             # React application
+├── env/                   # Python virtual environment
+├── requirements.txt       # Python dependencies
+└── .env                   # Environment variables
 ```
 
-------------------------------------------------------------------------
+## 🔧 Installation & Setup
 
-## Features
-
-### Backend (Django)
-
--   User authentication (Register, Login, OTP verification, Password
-    reset)
--   Dual user profiles (Individual & Company)
--   Job posting & application system
--   Social posts with comments & likes
--   Follow / Unfollow system
--   File uploads (profile images, resumes, post images)
--   RESTful API with JWT authentication
-
-### Frontend (React)
-
--   Complete authentication flow
--   Home dashboard with tab navigation
--   Responsive UI design
--   Password change functionality
--   Tabs: Home, Network, Jobs, Notifications, Posts
--   API integration using Axios
-
-------------------------------------------------------------------------
-
-## Setup Instructions
+### Prerequisites
+- Python 3.8+
+- Node.js 16+
+- PostgreSQL
+- Git
 
 ### Backend Setup
 
-``` bash
-cd job_portal
-python -m venv venv
-venv\Scripts\activate      # Windows
-source venv/bin/activate  # Linux/Mac
+1. **Clone the repository**
+```bash
+git clone <repository-url>
+cd Job_portal
+```
 
-pip install django djangorestframework django-cors-headers pillow
+2. **Create and activate virtual environment**
+```bash
+python -m venv env
+# Windows
+env\Scripts\activate
+# Linux/Mac
+source env/bin/activate
+```
+
+3. **Install Python dependencies**
+```bash
+pip install -r requirements.txt
+```
+
+4. **Database Setup**
+```bash
+# Create PostgreSQL database named 'jobportal'
+# Update database credentials in settings.py if needed
+```
+
+5. **Environment Variables**
+Create `.env` file in the root directory:
+```env
+SECRET_KEY=your-secret-key
+EMAIL_HOST_USER=your-email@gmail.com
+EMAIL_HOST_PASSWORD=your-app-password
+```
+
+6. **Run migrations**
+```bash
+cd Jobportal
+python manage.py makemigrations
 python manage.py migrate
+```
+
+7. **Create superuser**
+```bash
+python manage.py createsuperuser
+```
+
+8. **Start backend server**
+```bash
 python manage.py runserver
 ```
+Backend will run on `http://localhost:8000`
 
 ### Frontend Setup
 
-``` bash
-cd jobportal
-npm install
-npm run dev
+1. **Navigate to frontend directory**
+```bash
+cd Frontend/myapp
 ```
 
-------------------------------------------------------------------------
+2. **Install dependencies**
+```bash
+npm install
+```
 
-## API Endpoints
+3. **Start development server**
+```bash
+npm run dev
+```
+Frontend will run on `http://localhost:5173`
+
+## 📊 Database Models
+
+### User Model (accounts/models.py)
+- Custom user model with email authentication
+- Role-based access (Employee/Employer/Company)
+- OTP verification system
+
+### Job Post Model (job_post/models.py)
+- Job details (title, description, requirements)
+- Work modes (Remote/Hybrid/On-site)
+- Job types (Full-time/Part-time/Intern)
+- Application tracking
+
+### Profile Models (profiles/models.py)
+- User profiles with personal information
+- Education and experience tracking
+- Skills and certifications
+
+### Application Model
+- Job application management
+- Resume upload functionality
+- Application status tracking
+
+## 🔐 Authentication System
+
+### JWT Token Authentication
+- Access tokens (60 minutes lifetime)
+- Refresh tokens (1 day lifetime)
+- Token rotation for security
+
+### Email Verification
+- OTP-based email verification
+- SMTP configuration with Gmail
+- Account activation workflow
+
+## 🌐 API Endpoints
 
 ### Authentication
+- `POST /accounts/register/` - User registration
+- `POST /accounts/login/` - User login
+- `POST /accounts/verify-otp/` - Email verification
+- `POST /accounts/refresh/` - Token refresh
 
--   `POST /api/auth/register/` -- User registration
--   `POST /api/auth/login/` -- User login
--   `POST /api/auth/verify-otp/` -- OTP verification
--   `POST /api/auth/forgot-password/` -- Password reset request
--   `POST /api/auth/reset-password/` -- Password reset
+### Job Management
+- `GET /api/jobs/` - List all jobs
+- `POST /api/jobs/` - Create job (Employer/Company only)
+- `GET /api/jobs/{id}/` - Job details
+- `PUT /api/jobs/{id}/` - Update job
+- `DELETE /api/jobs/{id}/` - Delete job
 
-### User Management
+### Applications
+- `POST /api/jobs/{id}/apply/` - Apply for job
+- `GET /api/applications/` - User's applications
+- `GET /api/jobs/{id}/applications/` - Job applications (Employer only)
 
--   `GET /api/home/profile/` -- Get user profile
--   `PUT /api/home/profile/` -- Update profile
--   `POST /api/auth/change-password/` -- Change password
+### Profiles
+- `GET /profiles/profile/` - User profile
+- `PUT /profiles/profile/` - Update profile
+- `POST /profiles/education/` - Add education
+- `GET /profiles/education/` - List education
 
-### Jobs
+### Social Features
+- `POST /api-follows/follow/` - Follow user
+- `GET /api-follows/followers/` - Get followers
+- `POST /api-post/posts/` - Create post
+- `POST /api-post/posts/{id}/like/` - Like post
 
--   `GET /api/jobs/` -- List jobs
--   `POST /api/jobs/` -- Create job
--   `POST /api/jobs/{id}/apply/` -- Apply for a job
+## 🔧 Configuration
 
-### Posts
+### CORS Settings
+```python
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+```
 
--   `GET /api/posts/` -- List posts
--   `POST /api/posts/` -- Create post
--   `POST /api/posts/{id}/like/` -- Like / Unlike post
--   `POST /api/posts/{id}/comment/` -- Add comment
+### Media Files
+- Profile images: `/media/profile_images/`
+- Company logos: `/media/company_logos/`
+- Resumes: `/media/resumes/`
+- Post attachments: `/media/posts/`
 
-------------------------------------------------------------------------
+### Email Configuration
+- SMTP backend with Gmail
+- TLS encryption enabled
+- Environment-based credentials
 
-## Technologies Used
+## 🚀 Deployment
 
-### Backend
+### Backend Deployment
+1. Set `DEBUG = False` in settings.py
+2. Configure production database
+3. Set up static file serving
+4. Configure ALLOWED_HOSTS
+5. Set up HTTPS
 
--   Django 4.x
--   Django REST Framework
--   SQLite / PostgreSQL
--   Pillow (Image Processing)
--   CORS Headers
+### Frontend Deployment
+1. Build production bundle: `npm run build`
+2. Deploy to static hosting (Netlify, Vercel)
+3. Update API base URL for production
 
-### Frontend
+## 🧪 Testing
 
--   React 18
--   Vite
--   CSS3 (Responsive Design)
--   Axios
+### Backend Tests
+```bash
+cd Jobportal
+python manage.py test
+```
 
-------------------------------------------------------------------------
+### Frontend Tests
+```bash
+cd Frontend/myapp
+npm run lint
+```
 
-## Current Status
+## 📝 Usage Examples
 
--    Complete authentication system
--    User profile management
--    Job posting & application system
--    Social posts with likes & comments
--    Follow / Unfollow functionality
--    Responsive frontend with tab navigation
--    Password change functionality
+### Register a new user
+```javascript
+const response = await fetch('http://localhost:8000/accounts/register/', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    email: 'user@example.com',
+    password: 'securepassword',
+    first_name: 'John',
+    job_role: 'Employee'
+  })
+});
+```
 
-------------------------------------------------------------------------
+### Create a job post
+```javascript
+const response = await fetch('http://localhost:8000/api/jobs/', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${accessToken}`
+  },
+  body: JSON.stringify({
+    title: 'Software Developer',
+    description: 'Looking for a skilled developer...',
+    location: 'New York',
+    job_type: 'fulltime',
+    work_mode: 'remote'
+  })
+});
+```
 
-## Next Steps
+## 🤝 Contributing
 
--   Add content to empty navigation pages
--   Implement real-time notifications
--   Add search & filtering
--   Enhance UI/UX
--   Expand social features
+1. Fork the repository
+2. Create feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit changes (`git commit -m 'Add AmazingFeature'`)
+4. Push to branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
-------------------------------------------------------------------------
+## 📄 License
 
-## Contributing
+This project is licensed under the MIT License - see the LICENSE file for details.
 
-1.  Fork the repository
-2.  Create a feature branch
-3.  Make your changes
-4.  Test thoroughly
-5.  Submit a pull request
+## 🐛 Known Issues
 
-------------------------------------------------------------------------
+- File upload size limits may need adjustment for large resumes
+- Email delivery may be slow with Gmail SMTP in development
+- CORS configuration may need updates for production domains
 
-## License
+## 🔮 Future Enhancements
 
-This project is open-source and available under the **MIT License**.
+- Real-time chat between employers and candidates
+- Advanced job filtering and search
+- Integration with LinkedIn API
+- Mobile application development
+- AI-powered job recommendations
+- Video interview scheduling
+
+## 📞 Support
+
+For support and questions:
+- Create an issue in the repository
+- Contact the development team
+- Check the documentation for common solutions
+
+---
+
+**Happy Job Hunting! 🎯**
